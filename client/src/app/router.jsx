@@ -6,8 +6,11 @@ import AppLayout from '../layouts/AppLayout.jsx';
 import AuthLayout from '../layouts/AuthLayout.jsx';
 import HomePage from '../pages/HomePage.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
+import NewTripPage from '../pages/NewTripPage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
 import RegisterPage from '../pages/RegisterPage.jsx';
+import TripPage from '../pages/TripPage.jsx';
+import TripSettingsPage from '../pages/TripSettingsPage.jsx';
 
 export const router = createBrowserRouter([
   {
@@ -29,6 +32,9 @@ export const router = createBrowserRouter([
         element: <AppLayout />,
         children: [
           { path: '/', element: <HomePage /> },
+          { path: '/trips/new', element: <NewTripPage /> },
+          { path: '/trips/:tripId', element: <TripPage /> },
+          { path: '/trips/:tripId/settings', element: <TripSettingsPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },

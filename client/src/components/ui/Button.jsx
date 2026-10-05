@@ -1,6 +1,8 @@
 const variants = {
   primary: 'bg-teal text-paper active:bg-teal-deep',
   ghost: 'text-teal active:bg-teal/10',
+  danger: 'bg-danger text-paper active:opacity-80',
+  'danger-ghost': 'text-danger active:bg-danger/10',
 };
 
 export default function Button({

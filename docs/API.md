@@ -149,7 +149,7 @@ refresh + logout รวมกัน 60 ครั้ง / 15 นาที เก�
 | GET    | `/trips/:tripId`        | viewer | รายละเอียดทริป พร้อมสมาชิกและยอดใช้จ่ายย่อ |
 | PATCH  | `/trips/:tripId`        | owner  | แก้ข้อมูลทริป                              |
 | PATCH  | `/trips/:tripId/status` | owner  | เปลี่ยนสถานะ                               |
-| DELETE | `/trips/:tripId`        | owner  | soft delete                                |
+| DELETE | `/trips/:tripId`        | owner  | soft delete ตอบ 204                        |
 
 **POST `/trips`**
 
@@ -179,10 +179,11 @@ refresh + logout รวมกัน 60 ครั้ง / 15 นาที เก�
     "dayCount": 3,
     "currency": "THB",
     "budgetAmount": "7000.00",
+    "totalSpent": "0.00",
     "myRole": "owner",
     "members": [
-      { "id": 30, "displayName": "Dxvv", "role": "owner", "isMe": true },
-      { "id": 31, "displayName": "เพื่อน", "role": "editor", "isGuest": true }
+      { "id": 30, "displayName": "Dxvv", "role": "owner", "isMe": true, "isGuest": false },
+      { "id": 31, "displayName": "เพื่อน", "role": "editor", "isMe": false, "isGuest": true }
     ]
   }
 }

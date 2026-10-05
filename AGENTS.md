@@ -21,9 +21,8 @@
     บน serverless แต่ละ instance นับแยกกันและรีเซ็ตเมื่อ instance ถูกปิด
     ยอมรับได้สำหรับ v0.1 ที่ใช้คนเดียวหรือสองคน แต่ต้องย้ายไป external store
     ก่อนเปิดให้คนอื่นใช้ (ขัดกับ §11 เรื่อง state ระดับ module)
-- งานถัดไป: **F1.3 Trip CRUD** กลับไปทำต่อจากที่เขียนค้างไว้และยังไม่ commit
-  (`server/src/modules/trips/`, `server/src/middlewares/requireTripRole.js`,
-  `server/src/utils/datetime.js`, `server/src/utils/money.js`)
+- F1.3 Trip CRUD: ✅ เสร็จ (6 ต.ค.) หน้า `/` ตอนนี้เป็นรายการทริปแบบเรียบ ๆ
+- งานถัดไป: **F1.4 Dashboard** (จัดกลุ่มทริปตามสถานะบนหน้า `/`)
 - เจ้าของโปรเจกต์ยังใหม่กับ Prisma เมื่อใช้ความสามารถของ Prisma ที่ยังไม่เคยปรากฏในโค้ด ให้อธิบายสั้น ๆ ว่ามันเทียบกับ SQL อย่างไร
 
 ## 2. โปรเจกต์นี้คืออะไร
