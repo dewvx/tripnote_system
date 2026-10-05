@@ -30,7 +30,11 @@ function toMemberResponse(member, currentUserId) {
 
 export async function listTrips(userId, filters) {
   const trips = await tripsRepository.listTripsForUser(userId, filters);
-  return trips.map(withDayCount);
+  const spentByTrip = await tripsRepository.sumExpensesByTrip(trips.map((trip) => trip.id));
+  return trips.map((trip) => ({
+    ...withDayCount(trip),
+    totalSpent: spentByTrip.get(trip.id) ?? '0.00',
+  }));
 }
 
 export async function getTrip(tripId, currentUserId) {

@@ -3,7 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // แทน repository ด้วยฐานข้อมูลปลอมใน memory เหมือน auth.test.js
 // route → authenticate → requireTripRole → validate → controller → service เป็นของจริงทั้งหมด
-const db = vi.hoisted(() => ({ users: [], trips: [], members: [], itemDays: [], nextId: 1 }));
+const db = vi.hoisted(() => ({
+  users: [],
+  trips: [],
+  members: [],
+  itemDays: [],
+  spent: new Map(),
+  nextId: 1,
+}));
 
 vi.mock('../src/modules/users/users.repository.js', () => ({
   findUserById: vi.fn(async (id) => db.users.find((u) => u.id === id) ?? null),
@@ -57,7 +64,11 @@ vi.mock('../src/modules/trips/trips.repository.js', () => {
       const members = db.members.filter((m) => m.tripId === tripId).map(memberFields);
       return { ...tripFields(trip), members };
     }),
-    sumExpenses: vi.fn(async () => '0.00'),
+    sumExpenses: vi.fn(async (tripId) => db.spent.get(tripId) ?? '0.00'),
+    sumExpensesByTrip: vi.fn(
+      async (tripIds) =>
+        new Map(tripIds.filter((id) => db.spent.has(id)).map((id) => [id, db.spent.get(id)])),
+    ),
     updateTrip: vi.fn(async (tripId, fields) => Object.assign(liveTrip(tripId), fields)),
     softDeleteTrip: vi.fn(async (tripId) => {
       liveTrip(tripId).deletedAt = new Date();
@@ -111,6 +122,7 @@ beforeEach(() => {
   db.trips.length = 0;
   db.members.length = 0;
   db.itemDays.length = 0;
+  db.spent.clear();
   db.nextId = 1;
   owner = addUser('Owner');
   outsider = addUser('Outsider');
@@ -177,6 +189,17 @@ describe('GET /api/trips', () => {
 
     const active = await api(owner).get('/trips?status=active');
     expect(active.body.data).toEqual([]);
+  });
+
+  it('มียอดใช้จ่ายรวมของแต่ละทริป ทริปที่ยังไม่มีรายจ่ายเป็น "0.00"', async () => {
+    const spent = await createTrip(owner, { ...validTrip, name: 'มีรายจ่าย' });
+    await createTrip(owner, { ...validTrip, name: 'ยังไม่จ่าย' });
+    db.spent.set(spent.id, '1250.50');
+
+    const res = await api(owner).get('/trips');
+
+    const byName = Object.fromEntries(res.body.data.map((t) => [t.name, t.totalSpent]));
+    expect(byName).toEqual({ มีรายจ่าย: '1250.50', ยังไม่จ่าย: '0.00' });
   });
 });
 

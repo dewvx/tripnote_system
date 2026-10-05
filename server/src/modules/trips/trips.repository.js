@@ -61,6 +61,20 @@ export async function listTripsForUser(userId, { status } = {}) {
   }));
 }
 
+// ยอดรวมรายจ่ายของหลายทริปในคำสั่งเดียว คืน Map ของ tripId → "0.00"
+// `groupBy` = SELECT trip_id, SUM(amount) FROM expenses WHERE trip_id IN (...) AND deleted_at IS NULL
+//             GROUP BY trip_id
+// ทริปที่ไม่มีรายจ่ายจะไม่มีแถวกลับมา ฝั่งที่เรียกต้องถือว่าเป็น "0.00"
+export async function sumExpensesByTrip(tripIds) {
+  if (tripIds.length === 0) return new Map();
+  const rows = await prisma.expense.groupBy({
+    by: ['tripId'],
+    where: { tripId: { in: tripIds }, deletedAt: null },
+    _sum: { amount: true },
+  });
+  return new Map(rows.map((row) => [row.tripId, formatMoney(row._sum.amount) ?? '0.00']));
+}
+
 // สร้างทริปพร้อมสมาชิกในคำสั่งเดียว
 // nested `create` = INSERT trips แล้ว INSERT trip_members ด้วย trip_id ที่ได้ ใน transaction เดียวกัน
 export async function createTrip({ createdByUserId, members, ...fields }) {

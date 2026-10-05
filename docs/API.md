@@ -142,14 +142,14 @@ refresh + logout รวมกัน 60 ครั้ง / 15 นาที เก�
 
 ## 5. Trips — Phase 1
 
-| Method | Path                    | สิทธิ์ | คำอธิบาย                                   |
-| ------ | ----------------------- | ------ | ------------------------------------------ |
-| GET    | `/trips`                | login  | ทริปที่เป็นสมาชิก กรองด้วย `?status=`      |
-| POST   | `/trips`                | login  | สร้างทริป ผู้สร้างเป็น owner อัตโนมัติ     |
-| GET    | `/trips/:tripId`        | viewer | รายละเอียดทริป พร้อมสมาชิกและยอดใช้จ่ายย่อ |
-| PATCH  | `/trips/:tripId`        | owner  | แก้ข้อมูลทริป                              |
-| PATCH  | `/trips/:tripId/status` | owner  | เปลี่ยนสถานะ                               |
-| DELETE | `/trips/:tripId`        | owner  | soft delete ตอบ 204                        |
+| Method | Path                    | สิทธิ์ | คำอธิบาย                                                                                  |
+| ------ | ----------------------- | ------ | ----------------------------------------------------------------------------------------- |
+| GET    | `/trips`                | login  | ทริปที่เป็นสมาชิก กรองด้วย `?status=` แต่ละทริปมี `memberCount`, `dayCount`, `totalSpent` |
+| POST   | `/trips`                | login  | สร้างทริป ผู้สร้างเป็น owner อัตโนมัติ                                                    |
+| GET    | `/trips/:tripId`        | viewer | รายละเอียดทริป พร้อมสมาชิกและยอดใช้จ่ายย่อ                                                |
+| PATCH  | `/trips/:tripId`        | owner  | แก้ข้อมูลทริป                                                                             |
+| PATCH  | `/trips/:tripId/status` | owner  | เปลี่ยนสถานะ                                                                              |
+| DELETE | `/trips/:tripId`        | owner  | soft delete ตอบ 204                                                                       |
 
 **POST `/trips`**
 
