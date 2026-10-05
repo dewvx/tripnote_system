@@ -1,0 +1,28 @@
+# ใช้สำหรับ dev เท่านั้น: MySQL เวอร์ชันเดียวกันทุกเครื่อง
+# เริ่ม:  docker compose up -d      หยุด: docker compose down
+# ล้างข้อมูลทั้งหมด: docker compose down -v
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: tripnote-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: devpassword
+      MYSQL_DATABASE: tripnote
+      TZ: UTC
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+00:00
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-pdevpassword']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  mysql-data:

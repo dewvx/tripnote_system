@@ -1,0 +1,16 @@
+{
+  "name": "tripnote",
+  "private": true,
+  "description": "Trip Planner + Expense Tracker + Travel Journal",
+  "scripts": {
+    "setup": "npm --prefix server install && npm --prefix client install",
+    "dev:server": "npm --prefix server run dev",
+    "dev:client": "npm --prefix client run dev",
+    "lint": "npm --prefix server run lint && npm --prefix client run lint",
+    "test": "npm --prefix server test && npm --prefix client test",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "prettier": "^3.9.9"
+  }
+}

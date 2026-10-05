@@ -1,0 +1,47 @@
+@import 'tailwindcss';
+
+/*
+  Design tokens
+  แนวคิด: ป้ายบอกทางและตั๋วรถ อ่านออกกลางแดด ตัวเลขเงินเด่นที่สุดในจอ
+*/
+@theme {
+  --font-sans: 'Anuphan', ui-sans-serif, system-ui, sans-serif;
+
+  --color-mist: #f1f5f3; /* พื้นหลัง */
+  --color-paper: #ffffff; /* พื้นการ์ด */
+  --color-ink: #13222a; /* ตัวอักษรหลัก */
+  --color-slate: #5a6b73; /* ตัวอักษรรอง */
+  --color-line: #d9e2de; /* เส้นแบ่ง */
+  --color-teal: #0e6b6a; /* สีหลัก ปุ่ม ลิงก์ */
+  --color-teal-deep: #0a4f4e;
+  --color-marigold: #f4b02a; /* จุดเน้น งบ ตัวเลข */
+  --color-ok: #1f8a4c;
+  --color-danger: #c23b2a;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-mist font-sans text-ink antialiased;
+    min-height: 100dvh;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-teal);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}

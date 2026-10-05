@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+
+# secrets
+.env
+.env.*
+!.env.example
+
+# ไฟล์ที่ผู้ใช้อัปโหลดตอน dev
+server/uploads/
+
+.vercel/
+.DS_Store
+*.log
