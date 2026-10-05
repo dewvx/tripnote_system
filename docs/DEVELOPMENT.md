@@ -32,26 +32,17 @@ docker compose up -d
 
 ## 3. สร้างฐานข้อมูลครั้งแรก
 
-ทำครั้งเดียวตอนเริ่มโปรเจกต์ เพื่อสร้าง migration แรกจาก `schema.prisma`
+migration ทั้งหมดอยู่ใน `server/prisma/migrations/` แล้ว ฐานใหม่รันแค่นี้
 
 ```bash
 cd server
-
-# 1) ให้ Prisma เขียนไฟล์ SQL ให้ แต่ยังไม่รัน
-npx prisma migrate dev --name init --create-only
-
-# 2) เปิดไฟล์ prisma/migrations/<เวลา>_init/migration.sql
-#    แล้วคัดลอกเนื้อหาทั้งหมดของ prisma/check-constraints.sql ไปต่อท้าย
-
-# 3) รัน migration
-npx prisma migrate dev
-
-# 4) ใส่ข้อมูลตั้งต้น (หมวดค่าใช้จ่าย)
-npm run db:seed
+npx prisma migrate deploy   # สร้างตารางและ CHECK constraint ทั้งหมด
+npm run db:seed             # ใส่ข้อมูลตั้งต้น (หมวดค่าใช้จ่าย)
 ```
 
-ขั้นที่ 2 จำเป็นเพราะ Prisma schema ประกาศ CHECK constraint ไม่ได้ จึงต้องเติม SQL เอง
-หลัง commit โฟลเดอร์ `prisma/migrations/` แล้ว คนอื่นที่ clone ไปรันแค่ `npx prisma migrate dev` กับ `npm run db:seed`
+**เพิ่ม CHECK constraint ใหม่:** Prisma schema ประกาศ CHECK ไม่ได้ ให้สร้าง migration เปล่าด้วย
+`npx prisma migrate dev --name <ชื่อ> --create-only` แล้วเขียน `ALTER TABLE ... ADD CONSTRAINT ... CHECK (...)` เอง
+ตัวอย่างอยู่ที่ migration `20261006120000_add_check_constraints`
 
 ## 4. รันตอนพัฒนา
 

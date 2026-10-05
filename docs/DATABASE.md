@@ -423,7 +423,7 @@ GROUP BY m.id;
 
 - ทุกการเปลี่ยน schema ทำผ่าน `prisma migrate dev` พร้อมชื่อที่สื่อความหมาย
 - ห้ามแก้ migration ที่ commit แล้ว
-- CHECK constraint ที่ Prisma schema ประกาศไม่ได้ ให้เพิ่มด้วย SQL ในไฟล์ migration (ชุดแรกอยู่ที่ `server/prisma/check-constraints.sql`)
+- CHECK constraint ที่ Prisma schema ประกาศไม่ได้ ให้เพิ่มด้วย SQL ในไฟล์ migration (ชุดแรกอยู่ที่ migration `20261006120000_add_check_constraints`)
 - Production ใช้ `prisma migrate deploy` เท่านั้น
 - Seed แบ่งสองส่วน: ข้อมูลอ้างอิง (หมวดค่าใช้จ่าย รันได้ทุก environment) และข้อมูลตัวอย่าง (ทริปนำร่อง รันเฉพาะ dev)
 - เมื่อ schema เปลี่ยน ต้องอัปเดตเอกสารนี้ใน commit เดียวกัน

@@ -1,6 +1,6 @@
--- CHECK constraint ที่ประกาศใน schema.prisma ไม่ได้
--- วิธีใช้อยู่ใน docs/DEVELOPMENT.md หัวข้อ "สร้างฐานข้อมูลครั้งแรก"
--- (คัดลอกทั้งไฟล์ไปต่อท้าย migration.sql ของ migration แรก ก่อนสั่งรัน)
+-- CHECK constraint ที่ Prisma schema ประกาศไม่ได้
+-- เดิมตั้งใจให้คัดลอก prisma/check-constraints.sql ไปต่อท้าย migration แรก แต่ขั้นนั้นตกหล่น
+-- migration แรก commit ไปแล้วแก้ไม่ได้ จึงเพิ่มเป็น migration ใหม่ (AGENTS.md §9)
 
 ALTER TABLE `trips`
   ADD CONSTRAINT `chk_trips_dates` CHECK (`end_date` >= `start_date`),
