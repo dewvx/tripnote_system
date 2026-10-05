@@ -31,7 +31,7 @@
 
 เหลือ: รัน migration แรกบนเครื่อง dev (DEVELOPMENT.md §3) และ deploy หน้า health check ขึ้น Vercel (§8) แล้วเปลี่ยนเป็น ✅
 
-### F1.2 Authentication 🟡
+### F1.2 Authentication ✅
 
 - สมัครด้วยอีเมล รหัสผ่าน ชื่อที่แสดง
 - เข้าสู่ระบบ ออกจากระบบ

@@ -15,8 +15,15 @@
 - F1.1 Project Setup: ✅ เสร็จและ deploy ขึ้น production จริงแล้ว (5 ต.ค.)
   client: https://tripnote-client.vercel.app
   server: https://tripnote-system.vercel.app
-- F1.2 Authentication: 🟡 โค้ดและ test เสร็จ รอทดสอบบนมือถือและตั้ง `JWT_ACCESS_SECRET` บน Vercel
-- งานถัดไป: **F1.3 Trip CRUD**
+- F1.2 Authentication: ✅ เสร็จ (6 ต.ค.) ตั้ง `JWT_ACCESS_SECRET` บน Vercel แล้ว
+  ยืนยันจาก production deploy ที่ `/api/health` ตอบ `database: up`
+  - **Known limitation:** rate limit ของ auth (`middlewares/rateLimit.js`) เก็บใน memory
+    บน serverless แต่ละ instance นับแยกกันและรีเซ็ตเมื่อ instance ถูกปิด
+    ยอมรับได้สำหรับ v0.1 ที่ใช้คนเดียวหรือสองคน แต่ต้องย้ายไป external store
+    ก่อนเปิดให้คนอื่นใช้ (ขัดกับ §11 เรื่อง state ระดับ module)
+- งานถัดไป: **F1.3 Trip CRUD** กลับไปทำต่อจากที่เขียนค้างไว้และยังไม่ commit
+  (`server/src/modules/trips/`, `server/src/middlewares/requireTripRole.js`,
+  `server/src/utils/datetime.js`, `server/src/utils/money.js`)
 - เจ้าของโปรเจกต์ยังใหม่กับ Prisma เมื่อใช้ความสามารถของ Prisma ที่ยังไม่เคยปรากฏในโค้ด ให้อธิบายสั้น ๆ ว่ามันเทียบกับ SQL อย่างไร
 
 ## 2. โปรเจกต์นี้คืออะไร
