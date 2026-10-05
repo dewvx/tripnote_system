@@ -149,6 +149,15 @@ describe('POST /api/auth/login', () => {
     expect(wrongPassword.body.error.details).toBeUndefined();
   });
 
+  it('ไม่ส่งอีเมลหรือรหัสผ่าน ตอบ 422 พร้อมชื่อ field', async () => {
+    const res = await request(app).post('/api/auth/login').send({ email: 'nope', password: '' });
+
+    expect(res.status).toBe(422);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    const fields = res.body.error.details.map((d) => d.field);
+    expect(fields).toEqual(expect.arrayContaining(['email', 'password']));
+  });
+
   it('ลองผิดเกิน 10 ครั้งใน 15 นาที ตอบ 429 RATE_LIMITED', async () => {
     const attempt = () =>
       request(app).post('/api/auth/login').send({ email: 'ghost@example.com', password: 'x' });
