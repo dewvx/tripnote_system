@@ -318,7 +318,9 @@ Security เป็นส่วนหนึ่งของ Definition of Done ท
 ## 5. Environment Variables
 
 ```
-# server (ที่ใช้แล้วใน F1.1: NODE_ENV, PORT, DATABASE_URL, CORS_ORIGIN ที่เหลือเพิ่มเมื่อถึง feature นั้น)
+# server (ใช้แล้ว: NODE_ENV, PORT, DATABASE_URL, CORS_ORIGIN [F1.1], JWT_ACCESS_SECRET, JWT_ACCESS_TTL,
+#         REFRESH_TOKEN_TTL_DAYS [F1.2] ที่เหลือเพิ่มเมื่อถึง feature นั้น)
+# COOKIE_DOMAIN ยังไม่ใช้ เพราะ client กับ API อยู่ origin เดียวกันผ่าน rewrite cookie จึงไม่ต้องกำหนด domain
 NODE_ENV=
 PORT=
 DATABASE_URL=

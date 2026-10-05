@@ -13,7 +13,7 @@
 | 5    | กำหนด API                  | ✅ อนุมัติ 5 ต.ค.                            |
 | 6    | กำหนด Roadmap              | ✅ อนุมัติ 5 ต.ค. (เลือกแผน v0.1 Trip-Ready) |
 | 7    | สร้าง Project Foundation   | ✅ เสร็จ deploy production ผ่านแล้ว          |
-| 8    | Implement ทีละ feature     | ⬜ ถัดไป: F1.2 Authentication                |
+| 8    | Implement ทีละ feature     | 🟡 F1.2 Authentication                       |
 
 ## 2. ประเด็นที่ต้องตัดสินใจก่อน: ทริปจริงอยู่ห่างแค่ 5 วัน
 

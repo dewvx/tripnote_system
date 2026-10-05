@@ -1,3 +1,4 @@
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
@@ -28,6 +29,8 @@ if (env.CORS_ORIGIN.length > 0) {
 }
 
 app.use(express.json({ limit: '100kb' }));
+// ใช้อ่าน refresh cookie ที่ /api/auth/*
+app.use(cookieParser());
 
 app.use('/api', apiRoutes);
 

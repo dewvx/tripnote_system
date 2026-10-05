@@ -15,7 +15,8 @@
 - F1.1 Project Setup: ✅ เสร็จและ deploy ขึ้น production จริงแล้ว (5 ต.ค.)
   client: https://tripnote-client.vercel.app
   server: https://tripnote-system.vercel.app
-- งานถัดไป: **F1.2 Authentication**
+- F1.2 Authentication: 🟡 โค้ดและ test เสร็จ รอทดสอบบนมือถือและตั้ง `JWT_ACCESS_SECRET` บน Vercel
+- งานถัดไป: **F1.3 Trip CRUD**
 - เจ้าของโปรเจกต์ยังใหม่กับ Prisma เมื่อใช้ความสามารถของ Prisma ที่ยังไม่เคยปรากฏในโค้ด ให้อธิบายสั้น ๆ ว่ามันเทียบกับ SQL อย่างไร
 
 ## 2. โปรเจกต์นี้คืออะไร

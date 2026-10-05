@@ -6,6 +6,11 @@ const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
   DATABASE_URL: z.string().min(1, 'ต้องกำหนด DATABASE_URL'),
+  // สร้างด้วย: node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+  JWT_ACCESS_SECRET: z.string().min(32, 'JWT_ACCESS_SECRET ต้องยาวอย่างน้อย 32 ตัวอักษร'),
+  // รูปแบบตาม jsonwebtoken เช่น 15m, 1h
+  JWT_ACCESS_TTL: z.string().default('15m'),
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
   CORS_ORIGIN: z
     .string()
     .default('')

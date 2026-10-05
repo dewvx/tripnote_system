@@ -89,6 +89,19 @@ Base URL: `/api` · JSON · REST
 | POST   | `/auth/refresh`  | cookie | ขอ access token ใหม่ และหมุน refresh token          |
 | POST   | `/auth/logout`   | cookie | เพิกถอน refresh token และล้าง cookie                |
 
+ทั้ง register (201), login, refresh (200) คืน body รูปแบบเดียวกันคือ `{ accessToken, user }`
+และตั้ง cookie `refresh_token` (`HttpOnly; SameSite=Lax; Path=/api/auth`, `Secure` ใน production)
+refresh คืน `user` มาด้วยเพื่อให้ตอนเปิดแอปใช้ request เดียวก็รู้ทั้ง token และผู้ใช้ ไม่ต้องเรียก `/users/me` ซ้ำ
+logout ตอบ 204 เสมอ แม้ไม่มี cookie
+
+**POST `/auth/register`**
+
+```json
+{ "email": "user@example.com", "password": "********", "displayName": "Dxvv" }
+```
+
+อีเมลถูก trim และแปลงเป็นตัวพิมพ์เล็ก รหัสผ่านยาว 8 ตัวอักษรถึง 72 byte (ข้อจำกัดของ bcrypt) อีเมลซ้ำตอบ 409 `EMAIL_TAKEN`
+
 **POST `/auth/login`**
 
 ```json
@@ -104,15 +117,28 @@ Base URL: `/api` · JSON · REST
 }
 ```
 
-ข้อความผิดพลาดของ login ไม่แยกว่าอีเมลหรือรหัสผ่านผิด
+ข้อความผิดพลาดของ login ไม่แยกว่าอีเมลหรือรหัสผ่านผิด (401 `INVALID_CREDENTIALS` ไม่มี `details`)
+
+**401 ของ endpoint ที่ต้อง login**
+
+| code              | ความหมาย                            | client ทำอะไร                    |
+| ----------------- | ----------------------------------- | -------------------------------- |
+| `TOKEN_EXPIRED`   | access token หมดอายุ                | เรียก `/auth/refresh` แล้วยิงซ้ำ |
+| `UNAUTHENTICATED` | ไม่มี token, token ปลอม, ไม่มีบัญชี | พาไปหน้า login                   |
+
+`/auth/refresh` ตอบ 401 `UNAUTHENTICATED` เมื่อไม่มี cookie, token หมดอายุหรือถูกเพิกถอน
+ถ้า token ที่ถูกหมุนไปแล้วถูกส่งมาซ้ำ server จะเพิกถอน refresh token ทุกตัวของผู้ใช้นั้น
+
+**Rate limit** (นับต่อ IP เก็บใน memory ของแต่ละ instance): register + login รวมกัน 10 ครั้ง / 15 นาที,
+refresh + logout รวมกัน 60 ครั้ง / 15 นาที เกินแล้วตอบ 429 `RATE_LIMITED`
 
 ## 4. Users — Phase 1
 
-| Method | Path                 | คำอธิบาย                                                         |
-| ------ | -------------------- | ---------------------------------------------------------------- |
-| GET    | `/users/me`          | ข้อมูลผู้ใช้ปัจจุบัน                                             |
-| PATCH  | `/users/me`          | แก้ชื่อที่แสดง                                                   |
-| PATCH  | `/users/me/password` | เปลี่ยนรหัสผ่าน ต้องส่งรหัสเดิม และเพิกถอน refresh token ทั้งหมด |
+| Method | Path                 | คำอธิบาย                                                         | สถานะ   |
+| ------ | -------------------- | ---------------------------------------------------------------- | ------- |
+| GET    | `/users/me`          | ข้อมูลผู้ใช้ปัจจุบัน `{ id, email, displayName }`                | ✅ F1.2 |
+| PATCH  | `/users/me`          | แก้ชื่อที่แสดง                                                   | v0.2    |
+| PATCH  | `/users/me/password` | เปลี่ยนรหัสผ่าน ต้องส่งรหัสเดิม และเพิกถอน refresh token ทั้งหมด | v0.2    |
 
 ## 5. Trips — Phase 1
 

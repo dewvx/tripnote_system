@@ -160,7 +160,9 @@ DATABASE_URL="<url ของ production>" node prisma/seed.js
 
 1. Vercel → Add New Project → เลือก repo → **Root Directory: `server`**
 2. Framework Preset ควรถูกตรวจเจอเป็น Express (Vercel หา default export จาก `src/app.js`)
-3. Environment Variables: `NODE_ENV=production`, `DATABASE_URL=<url ของ production>`
+3. Environment Variables: `NODE_ENV=production`, `DATABASE_URL=<url ของ production>`,
+   `JWT_ACCESS_SECRET=<ค่าสุ่มยาว ≥ 32 ตัว ห้ามใช้ค่าเดียวกับ dev>` (เพิ่มใน F1.2 ถ้าไม่ตั้ง function จะพังตั้งแต่ตอนเริ่ม)
+   สร้างค่าด้วย `node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"`
 4. Deploy แล้วเปิด `https://<server-project>.vercel.app/api/health` ต้องได้ `"database":"up"`
 
 ### 8.3 Client project
