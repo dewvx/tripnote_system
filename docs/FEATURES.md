@@ -29,7 +29,7 @@
 - `GET /api/health` ตอบได้ และหน้าแรกของ client เรียกถึง
 - `docs/DEVELOPMENT.md` อธิบายวิธีรันตั้งแต่ clone
 
-เหลือ: รัน migration แรกบนเครื่อง dev (DEVELOPMENT.md §3) และ deploy หน้า health check ขึ้น Vercel (§8) แล้วเปลี่ยนเป็น ✅
+deploy production แล้ว 5 ต.ค. (`/api/health` ตอบ `database: up`) และรัน migration แรกบนฐาน dev `tripnote_dev` แล้ว 6 ต.ค.
 
 ### F1.2 Authentication ✅
 
