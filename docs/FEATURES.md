@@ -22,7 +22,7 @@
 
 ## Phase 1 — Foundation
 
-### F1.1 Project Setup 🟡
+### F1.1 Project Setup ✅
 
 - โครง `client/` และ `server/` ตาม ARCHITECTURE.md
 - ESLint, Prettier, `.env.example`, Docker Compose สำหรับ MySQL

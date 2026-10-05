@@ -170,14 +170,28 @@ DATABASE_URL="<url ของ production>" node prisma/seed.js
 3. Environment Variables: `VITE_API_BASE_URL=/api`
 4. Deploy แล้วเปิดเว็บ หน้าสถานะระบบต้องขึ้นว่าพร้อมใช้งานทั้งสองบรรทัด
 
-### 8.4 สิ่งที่ยังไม่ได้ทดสอบจริง
+### 8.4 บันทึกจากการ deploy จริงครั้งแรก (5 ต.ค. 2026)
 
-ขั้นตอนในหัวข้อ 8 เขียนตามเอกสารของ Vercel และ Prisma แต่ยังไม่เคย deploy จริงกับโปรเจกต์นี้
-ให้ทำตามแล้วแก้เอกสารส่วนนี้ให้ตรงกับที่เจอจริง จุดที่ต้องจับตา
+Deploy ผ่านครบทั้งสองฝั่งแล้ว มี 3 จุดที่ต่างจากแผนเดิม:
 
-- Vercel ตรวจเจอ Express จาก `server/src/app.js` หรือไม่
-- Prisma engine ถูกรวมเข้า function หรือไม่ (ถ้า error ว่าหา query engine ไม่เจอ ให้ตรวจ `binaryTargets` ใน `schema.prisma`)
-- รูปแบบ SSL ของ connection string กับผู้ให้บริการฐานข้อมูลที่เลือก
+- **ต้องเพิ่ม `server/vercel.json`** เพื่อสั่งให้ Vercel รวม `prisma/ca.pem` เข้าไปใน
+  function bundle เพราะไฟล์นี้ถูกอ้างถึงผ่าน string ใน `DATABASE_URL`
+  (ไม่ใช่ `import`/`require`) ตัว file-tracer ของ Vercel เลยไม่เห็นมันโดยอัตโนมัติ
+  ถ้าไม่มีไฟล์นี้ ฐานข้อมูลจะต่อไม่ติด (`/api/health` ขึ้น `database: down`)
+  โดยไม่มี error อื่นให้เห็นนอกจาก Runtime Logs
+
+```json
+{
+  "functions": { "src/app.js": { "includeFiles": "prisma/ca.pem" } }
+}
+```
+
+- **ตั้งชื่อ 2 project บน Vercel ต้องไม่ซ้ำกัน** ไม่งั้น Vercel จะเติมเลขสุ่มต่อท้ายชื่อที่ซ้ำ
+  ทำให้โดเมนไม่ตรงกับที่วางแผน (ของจริง: server = `tripnote-system`, client = `tripnote-client`)
+- `npm warn install-scripts` และ Node engines warning ที่ขึ้นตอน build ไม่กระทบผลลัพธ์
+  เป็นคำเตือนเฉยๆ ปล่อยผ่านได้
+
+โดเมน production: client `https://tripnote-client.vercel.app`, server `https://tripnote-system.vercel.app`
 
 ## 9. ปัญหาที่เจอบ่อย
 

@@ -12,7 +12,9 @@
 **v0.1 Trip-Ready — กำหนดเสร็จ 9 ต.ค. 2026** (แผนรายวันอยู่ที่ `docs/ROADMAP.md` §3)
 
 - Architecture อนุมัติแล้วเมื่อ 5 ต.ค. 2026
-- F1.1 Project Setup: โครงเสร็จแล้ว รอรัน migration แรกบนเครื่อง dev
+- F1.1 Project Setup: ✅ เสร็จและ deploy ขึ้น production จริงแล้ว (5 ต.ค.)
+  client: https://tripnote-client.vercel.app
+  server: https://tripnote-system.vercel.app
 - งานถัดไป: **F1.2 Authentication**
 - เจ้าของโปรเจกต์ยังใหม่กับ Prisma เมื่อใช้ความสามารถของ Prisma ที่ยังไม่เคยปรากฏในโค้ด ให้อธิบายสั้น ๆ ว่ามันเทียบกับ SQL อย่างไร
 
