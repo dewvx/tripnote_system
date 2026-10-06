@@ -295,8 +295,41 @@ Phase 1 สร้าง guest ได้ผ่าน `POST /trips` อยู่�
 | PATCH  | `/trips/:tripId/expenses/:expenseId` | editor | แก้ไข                 |
 | DELETE | `/trips/:tripId/expenses/:expenseId` | editor | soft delete           |
 
-Query ของรายการ: `?categoryId=&paidByMemberId=&date=YYYY-MM-DD&cursor=&limit=`
-เรียงจากใหม่ไปเก่า แบ่งหน้าด้วย cursor
+**GET `/trips/:tripId/expenses`**
+
+Query: `?categoryId=&paidByMemberId=&cursor=&limit=` (`limit` 1–100 ค่าเริ่มต้น 20)
+เรียงจากใหม่ไปเก่า (`spentAt` แล้ว `id`) หน้าถัดไปส่ง `cursor` = `meta.nextCursor` ของหน้าก่อน
+ตัวกรอง `date=YYYY-MM-DD` ยังไม่ทำใน v0.1
+
+```json
+{
+  "data": [
+    {
+      "id": 301,
+      "clientId": "6f1c2a9e-8f0b-4f0e-9a51-0c1d2e3f4a5b",
+      "amount": "50.00",
+      "description": "น้ำเปล่า",
+      "spentAt": "2026-10-10T04:42:00.000Z",
+      "category": {
+        "id": 2,
+        "code": "food",
+        "nameTh": "อาหาร",
+        "icon": "utensils",
+        "color": "#e2732d"
+      },
+      "paidBy": { "id": 30, "displayName": "Dxvv" },
+      "createdAt": "2026-10-10T04:42:05.000Z"
+    }
+  ],
+  "meta": {
+    "nextCursor": "301",
+    "days": [{ "date": "2026-10-10", "total": "1850.00", "count": 9 }]
+  }
+}
+```
+
+`meta.days` คือยอดรวมรายวันของ **ทุกรายการที่ตรงตัวกรอง** ไม่ใช่แค่หน้านี้ แบ่งวันตาม `trips.timezone`
+เรียงวันใหม่ไปเก่า หน้าสุดท้าย `nextCursor` เป็น `null`
 
 **POST `/trips/:tripId/expenses`**
 
@@ -315,6 +348,17 @@ Query ของรายการ: `?categoryId=&paidByMemberId=&date=YYYY-MM-DD
 บังคับแค่ `amount`, `categoryId`, `paidByMemberId` ถ้าไม่ส่ง `spentAt` ใช้เวลาปัจจุบัน
 `placeId` ยังไม่รับใน v0.1 (Places อยู่ Phase 2) ถ้าส่งมาจะถูกเมิน
 ใบเสร็จอัปโหลดแยกผ่าน endpoint ของ photos หลังได้ `id` ของรายจ่าย เพื่อให้การบันทึกตัวเลขไม่ต้องรอรูป
+
+**PATCH `/trips/:tripId/expenses/:expenseId`**
+
+ส่งเฉพาะช่องที่จะแก้จาก `amount`, `categoryId`, `paidByMemberId`, `description`, `spentAt`
+กฎเดียวกับ POST, `description` เป็น `""` หรือ `null` = ลบรายละเอียด คืนรายการที่แก้แล้ว
+ไม่พบ, อยู่ทริปอื่น หรือถูกลบไปแล้ว ตอบ 404 `EXPENSE_NOT_FOUND`
+
+**DELETE `/trips/:tripId/expenses/:expenseId`**
+
+soft delete (`deleted_at`) ตอบ 204 รายการหายจากรายการและยอดรวมทุกจุดทันที ลบซ้ำได้ 404
+POST ด้วย `clientId` ของรายการที่ลบไปแล้วตอบ 404 ไม่สร้างกลับมาใหม่
 
 **GET `/trips/:tripId/expenses/summary`**
 

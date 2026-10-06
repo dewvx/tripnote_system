@@ -8,6 +8,7 @@ import { fieldErrors } from '../../../utils/fieldErrors.js';
 import { parseAmountInput } from '../amount.js';
 import { useCreateExpense, useExpenseCategories } from '../hooks.js';
 import { setLastPayerId } from '../preferences.js';
+import AmountField from './AmountField.jsx';
 import CategoryPicker from './CategoryPicker.jsx';
 import PayerPicker from './PayerPicker.jsx';
 import SpentAtField from './SpentAtField.jsx';
@@ -55,32 +56,12 @@ export default function QuickAddExpenseForm({ trip, draft, onChange, onSaved }) 
 
   return (
     <form onSubmit={handleSubmit} noValidate className="space-y-5">
-      <div>
-        <label htmlFor="expense-amount" className="font-medium">
-          จำนวนเงิน (บาท)
-        </label>
-        <input
-          id="expense-amount"
-          data-autofocus
-          type="text"
-          inputMode="decimal"
-          autoComplete="off"
-          enterKeyHint="done"
-          placeholder="0"
-          value={draft.amount}
-          onChange={(event) => update({ amount: event.target.value })}
-          aria-invalid={errors.amount ? true : undefined}
-          aria-describedby={errors.amount ? 'expense-amount-error' : undefined}
-          className={`tabular mt-1.5 block min-h-16 w-full rounded-xl border bg-paper px-4 text-right text-3xl font-semibold ${
-            errors.amount ? 'border-danger' : 'border-line'
-          } focus:border-teal focus:outline-none`}
-        />
-        {errors.amount && (
-          <p id="expense-amount-error" className="mt-1.5 text-sm text-danger">
-            {errors.amount}
-          </p>
-        )}
-      </div>
+      <AmountField
+        autoFocus
+        value={draft.amount}
+        onChange={(amount) => update({ amount })}
+        error={errors.amount}
+      />
 
       {categories.isPending && <Spinner label="กำลังโหลดหมวด" />}
       {categories.error && (

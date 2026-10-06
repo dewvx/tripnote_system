@@ -1,9 +1,28 @@
+import { Prisma } from '@prisma/client';
+
 import { AppError } from '../../lib/AppError.js';
+import { formatMoney } from '../../utils/money.js';
 import * as categoriesRepository from '../expense-categories/expense-categories.repository.js';
 import * as expensesRepository from './expenses.repository.js';
 
 function invalidField(field, message) {
   return new AppError('VALIDATION_ERROR', 422, 'ข้อมูลไม่ถูกต้อง', [{ field, message }]);
+}
+
+function notFound() {
+  return new AppError('EXPENSE_NOT_FOUND', 404, 'ไม่พบรายการค่าใช้จ่ายนี้ อาจถูกลบไปแล้ว');
+}
+
+// หมวดกับคนจ่ายต้องมีจริงและคนจ่ายต้องอยู่ในทริปนี้ ตรวจเฉพาะช่องที่ส่งมา
+async function assertReferences(tripId, { categoryId, paidByMemberId }) {
+  const [category, payer] = await Promise.all([
+    categoryId === undefined ? true : categoriesRepository.findActiveCategory(categoryId),
+    paidByMemberId === undefined
+      ? true
+      : expensesRepository.findMemberInTrip(tripId, paidByMemberId),
+  ]);
+  if (!category) throw invalidField('categoryId', 'ไม่พบหมวดนี้');
+  if (!payer) throw invalidField('paidByMemberId', 'คนจ่ายต้องเป็นคนในทริปนี้');
 }
 
 // คืน { expense, created } ให้ controller เลือก 201 หรือ 200 (API.md §Idempotency)
@@ -15,12 +34,7 @@ export async function createExpense(trip, userId, input) {
     if (existing) return { expense: existing, created: false };
   }
 
-  const [category, payer] = await Promise.all([
-    categoriesRepository.findActiveCategory(categoryId),
-    expensesRepository.findMemberInTrip(trip.id, paidByMemberId),
-  ]);
-  if (!category) throw invalidField('categoryId', 'ไม่พบหมวดนี้');
-  if (!payer) throw invalidField('paidByMemberId', 'คนจ่ายต้องเป็นคนในทริปนี้');
+  await assertReferences(trip.id, { categoryId, paidByMemberId });
 
   const expense = await expensesRepository.createExpense({
     ...fields,
@@ -35,9 +49,72 @@ export async function createExpense(trip, userId, input) {
 
   // ชน unique ระหว่างทาง: คำขอก่อนหน้าด้วย clientId เดียวกันบันทึกไปแล้ว คืนตัวนั้นแทน
   const existing = await expensesRepository.findByClientId(trip.id, clientId);
+  // หาไม่เจอแปลว่ารายการเดิมถูกลบไปแล้ว (unique ยังนับแถวที่ soft delete) ไม่สร้างกลับมาใหม่
+  if (!existing) throw notFound();
   return { expense: existing, created: false };
 }
 
-export function listRecentExpenses(trip, { limit }) {
-  return expensesRepository.listRecentExpenses(trip.id, limit);
+// "YYYY-MM-DD" ของเวลานั้นตาม timezone ของทริป (en-CA จัดรูปวันที่เป็น ISO พอดี)
+function dayKeyFormatter(timezone) {
+  const format = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return (date) => format.format(date);
+}
+
+// ยอดรวมรายวันของทุกรายการที่ตรงตัวกรอง ไม่ใช่แค่หน้าที่โหลดมา ใหม่ไปเก่า
+// รวมด้วย Prisma.Decimal ไม่ผ่าน JS number (AGENTS.md §6)
+export function sumByDay(rows, timezone) {
+  const toDay = dayKeyFormatter(timezone);
+  const days = new Map();
+  for (const { spentAt, amount } of rows) {
+    const date = toDay(spentAt);
+    const day = days.get(date) ?? { date, total: new Prisma.Decimal(0), count: 0 };
+    day.total = day.total.plus(amount);
+    day.count += 1;
+    days.set(date, day);
+  }
+  return [...days.values()]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .map((day) => ({ ...day, total: formatMoney(day.total) }));
+}
+
+// คืน { expenses, meta } meta.days คือยอดรายวันของทั้งชุดที่กรอง ใช้แสดงหัวกลุ่มวัน
+export async function listExpenses(trip, { limit, cursor, ...filters }) {
+  // ขอเกินมาหนึ่งแถวเพื่อรู้ว่ามีหน้าถัดไปไหม
+  const [rows, amounts] = await Promise.all([
+    expensesRepository.listExpenses(trip.id, { ...filters, cursor, limit: limit + 1 }),
+    expensesRepository.listAmountsForDays(trip.id, filters),
+  ]);
+  const hasMore = rows.length > limit;
+  const expenses = hasMore ? rows.slice(0, limit) : rows;
+  return {
+    expenses,
+    meta: {
+      nextCursor: hasMore ? String(expenses.at(-1).id) : null,
+      days: sumByDay(amounts, trip.timezone),
+    },
+  };
+}
+
+export async function updateExpense(trip, expenseId, input) {
+  await assertReferences(trip.id, input);
+
+  const { spentAt, ...fields } = input;
+  const data = { ...fields, ...(spentAt && { spentAt: new Date(spentAt) }) };
+  // ไม่มีช่องให้แก้ ไม่ต้องสั่ง UPDATE แค่คืนรายการเดิม
+  const expense =
+    Object.keys(data).length === 0
+      ? await expensesRepository.findExpense(trip.id, expenseId)
+      : await expensesRepository.updateExpense(trip.id, expenseId, data);
+  if (!expense) throw notFound();
+  return expense;
+}
+
+export async function deleteExpense(trip, expenseId) {
+  const deleted = await expensesRepository.softDeleteExpense(trip.id, expenseId);
+  if (!deleted) throw notFound();
 }

@@ -10,6 +10,20 @@ export async function create(req, res) {
 }
 
 export async function list(req, res) {
-  const expenses = await expensesService.listRecentExpenses(req.trip, req.valid.query);
-  res.json({ data: expenses });
+  const { expenses, meta } = await expensesService.listExpenses(req.trip, req.valid.query);
+  res.json({ data: expenses, meta });
+}
+
+export async function update(req, res) {
+  const expense = await expensesService.updateExpense(
+    req.trip,
+    req.valid.params.expenseId,
+    req.valid.body,
+  );
+  res.json({ data: expense });
+}
+
+export async function remove(req, res) {
+  await expensesService.deleteExpense(req.trip, req.valid.params.expenseId);
+  res.status(204).end();
 }

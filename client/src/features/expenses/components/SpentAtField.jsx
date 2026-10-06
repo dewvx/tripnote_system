@@ -1,10 +1,6 @@
 import { useId } from 'react';
 
-// "YYYY-MM-DDTHH:mm" ตามเวลาของเครื่อง สำหรับค่าเริ่มต้นของ <input type="datetime-local">
-function toLocalInputValue(date) {
-  const offsetMs = date.getTimezoneOffset() * 60_000;
-  return new Date(date.getTime() - offsetMs).toISOString().slice(0, 16);
-}
+import { toLocalInputValue } from '../localTime.js';
 
 // เวลาเป็น "ตอนนี้" เสมอ เว้นแต่แตะเพื่อแก้ (หลัก UX ข้อ 4)
 // value = null หมายถึงตอนนี้ (ให้ server ใส่เวลาตอนบันทึก) ไม่งั้นเป็นค่าจาก datetime-local

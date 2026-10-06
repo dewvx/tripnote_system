@@ -11,23 +11,45 @@ const amount = z
 const id = (message) =>
   z.coerce.number(message).int(message).positive(message).max(2_147_483_647, message);
 
+const description = z
+  .string()
+  .trim()
+  .max(255, 'รายละเอียดยาวเกินไป')
+  .transform((value) => value || null)
+  .nullable()
+  .optional();
+
+// ISO 8601 พร้อม timezone เก็บเป็น UTC
+const spentAt = z.iso.datetime({ offset: true, message: 'เวลาไม่ถูกต้อง' });
+
 export const createExpenseSchema = z.object({
   // UUID ที่ client สร้างครั้งเดียวต่อการกรอกหนึ่งครั้ง ส่งซ้ำได้ตอนเน็ตหลุดโดยไม่เกิดรายการซ้ำ
   clientId: z.uuid('clientId ต้องเป็น UUID').optional(),
   amount,
   categoryId: id('กรุณาเลือกหมวด'),
   paidByMemberId: id('กรุณาเลือกคนจ่าย'),
-  description: z
-    .string()
-    .trim()
-    .max(255, 'รายละเอียดยาวเกินไป')
-    .transform((value) => value || null)
-    .nullable()
-    .optional(),
-  // ISO 8601 พร้อม timezone เก็บเป็น UTC ไม่ส่งมา = ตอนนี้
-  spentAt: z.iso.datetime({ offset: true, message: 'เวลาไม่ถูกต้อง' }).optional(),
+  description,
+  // ไม่ส่งมา = ตอนนี้
+  spentAt: spentAt.optional(),
+});
+
+// แก้บางช่อง ส่งเฉพาะช่องที่เปลี่ยน description ว่างหรือ null = ลบรายละเอียด
+export const updateExpenseSchema = z.object({
+  amount: amount.optional(),
+  categoryId: id('กรุณาเลือกหมวด').optional(),
+  paidByMemberId: id('กรุณาเลือกคนจ่าย').optional(),
+  description,
+  spentAt: spentAt.optional(),
+});
+
+export const expenseParamsSchema = z.object({
+  expenseId: id('ไม่พบรายการค่าใช้จ่าย'),
 });
 
 export const listExpensesQuerySchema = z.object({
+  categoryId: id('หมวดไม่ถูกต้อง').optional(),
+  paidByMemberId: id('คนจ่ายไม่ถูกต้อง').optional(),
+  // id ของรายการสุดท้ายในหน้าก่อน ได้จาก meta.nextCursor
+  cursor: id('cursor ไม่ถูกต้อง').optional(),
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });

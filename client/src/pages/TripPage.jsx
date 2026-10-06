@@ -55,7 +55,7 @@ export default function TripPage() {
         )}
       </dl>
 
-      <RecentExpenses trip={trip} />
+      <RecentExpenses trip={trip} canEdit={canEdit} />
 
       {isOwner && <TripStatusActions trip={trip} />}
 

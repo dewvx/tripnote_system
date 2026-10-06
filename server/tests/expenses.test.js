@@ -20,7 +20,10 @@ vi.mock('../src/modules/trips/trips.repository.js', () => ({
   findMembership: vi.fn(async (tripId, userId) => {
     const m = db.memberships.find((x) => x.tripId === tripId && x.userId === userId);
     return m
-      ? { trip: { id: tripId, status: 'active' }, member: { id: m.id, role: m.role } }
+      ? {
+          trip: { id: tripId, status: 'active', timezone: 'Asia/Bangkok' },
+          member: { id: m.id, role: m.role },
+        }
       : null;
   }),
 }));
@@ -40,6 +43,12 @@ vi.mock('../src/modules/expenses/expenses.repository.js', () => {
     category: categories.find((c) => c.id === row.categoryId),
     paidBy: db.members.find((m) => m.id === row.paidByMemberId),
   });
+  const live = (tripId, { categoryId, paidByMemberId } = {}) =>
+    db.expenses
+      .filter((e) => e.tripId === tripId && !e.deletedAt)
+      .filter((e) => !categoryId || e.categoryId === categoryId)
+      .filter((e) => !paidByMemberId || e.paidByMemberId === paidByMemberId)
+      .sort((a, b) => b.spentAt - a.spentAt || b.id - a.id);
   return {
     findMemberInTrip: vi.fn(async (tripId, memberId) => {
       const m = db.members.find((x) => x.id === memberId && x.tripId === tripId);
@@ -47,7 +56,7 @@ vi.mock('../src/modules/expenses/expenses.repository.js', () => {
     }),
     findByClientId: vi.fn(async (tripId, clientId) => {
       if (db.simulateRace) return null;
-      const row = db.expenses.find((e) => e.tripId === tripId && e.clientId === clientId);
+      const row = live(tripId).find((e) => e.clientId === clientId);
       return row ? view(row) : null;
     }),
     createExpense: vi.fn(async (data) => {
@@ -62,13 +71,29 @@ vi.mock('../src/modules/expenses/expenses.repository.js', () => {
       db.expenses.push(row);
       return view(row);
     }),
-    listRecentExpenses: vi.fn(async (tripId, limit) =>
-      db.expenses
-        .filter((e) => e.tripId === tripId)
-        .sort((a, b) => b.spentAt - a.spentAt || b.id - a.id)
-        .slice(0, limit)
-        .map(view),
+    listExpenses: vi.fn(async (tripId, { cursor, limit, ...filters }) => {
+      const rows = live(tripId, filters);
+      const start = cursor ? rows.findIndex((e) => e.id === cursor) + 1 : 0;
+      return rows.slice(start, start + limit).map(view);
+    }),
+    listAmountsForDays: vi.fn(async (tripId, filters) =>
+      live(tripId, filters).map(({ spentAt, amount }) => ({ spentAt, amount })),
     ),
+    findExpense: vi.fn(async (tripId, id) => {
+      const row = live(tripId).find((e) => e.id === id);
+      return row ? view(row) : null;
+    }),
+    updateExpense: vi.fn(async (tripId, id, data) => {
+      const row = live(tripId).find((e) => e.id === id);
+      if (!row) return null;
+      Object.assign(row, data, data.amount && { amount: Number(data.amount).toFixed(2) });
+      return view(row);
+    }),
+    softDeleteExpense: vi.fn(async (tripId, id) => {
+      const row = live(tripId).find((e) => e.id === id);
+      if (row) row.deletedAt = new Date();
+      return Boolean(row);
+    }),
   };
 });
 
@@ -214,17 +239,201 @@ describe('POST /api/trips/:tripId/expenses', () => {
   });
 });
 
+// เพิ่มรายจ่ายตรงลงฐานปลอม ไม่ผ่าน API ให้ test อ่านง่าย
+function seed(rows) {
+  for (const row of rows) {
+    db.expenses.push({
+      id: db.nextId++,
+      tripId: TRIP,
+      categoryId: 2,
+      paidByMemberId: 100,
+      clientId: null,
+      ...row,
+      spentAt: new Date(row.spentAt),
+    });
+  }
+}
+
+function get(userId, query = '', tripId = TRIP) {
+  return request(app)
+    .get(`/api/trips/${tripId}/expenses${query}`)
+    .set('Authorization', auth(userId));
+}
+
 describe('GET /api/trips/:tripId/expenses', () => {
   it('เรียงใหม่ไปเก่าและจำกัดจำนวนด้วย limit', async () => {
-    for (const [i, spentAt] of ['2026-10-10T01:00:00Z', '2026-10-10T03:00:00Z'].entries()) {
-      await post(users.owner, { ...valid(), clientId: undefined, amount: `${i + 1}`, spentAt });
-    }
+    seed([
+      { amount: '1.00', spentAt: '2026-10-10T01:00:00Z' },
+      { amount: '2.00', spentAt: '2026-10-10T03:00:00Z' },
+    ]);
 
-    const res = await request(app)
-      .get(`/api/trips/${TRIP}/expenses?limit=1`)
-      .set('Authorization', auth(users.viewer));
+    const res = await get(users.viewer, '?limit=1');
 
     expect(res.status).toBe(200);
     expect(res.body.data.map((e) => e.amount)).toEqual(['2.00']);
+  });
+
+  it('แบ่งหน้าด้วย cursor ไม่ซ้ำไม่ข้าม หน้าสุดท้าย nextCursor เป็น null', async () => {
+    seed(
+      ['1', '2', '3', '4', '5'].map((n) => ({
+        amount: `${n}.00`,
+        spentAt: `2026-10-10T0${n}:00:00Z`,
+      })),
+    );
+
+    const first = await get(users.owner, '?limit=2');
+    const second = await get(users.owner, `?limit=2&cursor=${first.body.meta.nextCursor}`);
+    const last = await get(users.owner, `?limit=2&cursor=${second.body.meta.nextCursor}`);
+
+    expect(first.body.data.map((e) => e.amount)).toEqual(['5.00', '4.00']);
+    expect(second.body.data.map((e) => e.amount)).toEqual(['3.00', '2.00']);
+    expect(last.body.data.map((e) => e.amount)).toEqual(['1.00']);
+    expect(last.body.meta.nextCursor).toBeNull();
+  });
+
+  it('กรองตามหมวดและคนจ่าย ยอดรายวันคิดจากชุดที่กรองแล้ว', async () => {
+    seed([
+      { amount: '100.00', categoryId: 1, spentAt: '2026-10-10T05:00:00Z' },
+      { amount: '40.00', paidByMemberId: 102, spentAt: '2026-10-10T06:00:00Z' },
+      { amount: '60.00', spentAt: '2026-10-10T07:00:00Z' },
+    ]);
+
+    const food = await get(users.owner, '?categoryId=2');
+    expect(food.body.data.map((e) => e.amount)).toEqual(['60.00', '40.00']);
+    expect(food.body.meta.days).toEqual([{ date: '2026-10-10', total: '100.00', count: 2 }]);
+
+    const friend = await get(users.owner, '?paidByMemberId=102&categoryId=2');
+    expect(friend.body.data.map((e) => e.amount)).toEqual(['40.00']);
+  });
+
+  it('ยอดรายวันแบ่งวันตาม timezone ของทริป รวมทุกหน้า และไม่มีเศษทศนิยมเพี้ยน', async () => {
+    seed([
+      // 23:30 เวลาไทยของวันที่ 10 = 16:30 UTC
+      { amount: '0.10', spentAt: '2026-10-10T16:30:00Z' },
+      { amount: '0.20', spentAt: '2026-10-10T16:40:00Z' },
+      // 00:10 เวลาไทยของวันที่ 11 = 17:10 UTC ของวันที่ 10
+      { amount: '50.00', spentAt: '2026-10-10T17:10:00Z' },
+    ]);
+
+    const res = await get(users.owner, '?limit=1');
+
+    expect(res.body.data).toHaveLength(1);
+    expect(res.body.meta.days).toEqual([
+      { date: '2026-10-11', total: '50.00', count: 1 },
+      { date: '2026-10-10', total: '0.30', count: 2 },
+    ]);
+  });
+
+  it('ไม่แสดงรายการที่ถูกลบ ไม่มีรายจ่าย days เป็น []', async () => {
+    seed([{ amount: '9.00', spentAt: '2026-10-10T05:00:00Z', deletedAt: new Date() }]);
+
+    const res = await get(users.owner);
+
+    expect(res.body.data).toEqual([]);
+    expect(res.body.meta).toEqual({ nextCursor: null, days: [] });
+  });
+
+  it('ตัวกรองที่ไม่ใช่ตัวเลข ตอบ 422 คนนอกทริปได้ 404', async () => {
+    expect((await get(users.owner, '?categoryId=abc')).status).toBe(422);
+    expect((await get(users.outsider)).status).toBe(404);
+  });
+});
+
+function patch(userId, expenseId, body, tripId = TRIP) {
+  return request(app)
+    .patch(`/api/trips/${tripId}/expenses/${expenseId}`)
+    .set('Authorization', auth(userId))
+    .send(body);
+}
+
+function del(userId, expenseId, tripId = TRIP) {
+  return request(app)
+    .delete(`/api/trips/${tripId}/expenses/${expenseId}`)
+    .set('Authorization', auth(userId));
+}
+
+describe('PATCH /api/trips/:tripId/expenses/:expenseId', () => {
+  beforeEach(() => {
+    seed([{ amount: '50.00', description: 'น้ำ', spentAt: '2026-10-10T05:00:00Z' }]);
+  });
+
+  it('แก้บางช่องได้ ช่องที่ไม่ส่งคงเดิม ส่ง description ว่าง = ลบ', async () => {
+    const res = await patch(users.owner, 1, {
+      amount: '75.5',
+      categoryId: 1,
+      paidByMemberId: 102,
+      description: '',
+      spentAt: '2026-10-10T20:00:00+07:00',
+    });
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({
+      id: 1,
+      amount: '75.50',
+      description: null,
+      category: { code: 'accommodation' },
+      paidBy: { id: 102 },
+      spentAt: '2026-10-10T13:00:00.000Z',
+    });
+
+    const amountOnly = await patch(users.owner, 1, { amount: '80' });
+    expect(amountOnly.body.data).toMatchObject({ amount: '80.00', paidBy: { id: 102 } });
+  });
+
+  it('ตรวจค่าเหมือนตอนเพิ่ม: เงินศูนย์ หมวดไม่มีจริง คนจ่ายทริปอื่น ตอบ 422', async () => {
+    expect((await patch(users.owner, 1, { amount: '0' })).status).toBe(422);
+
+    const category = await patch(users.owner, 1, { categoryId: 99 });
+    expect(category.body.error.details[0].field).toBe('categoryId');
+
+    const payer = await patch(users.owner, 1, { paidByMemberId: 200 });
+    expect(payer.body.error.details[0].field).toBe('paidByMemberId');
+
+    expect(db.expenses[0].amount).toBe('50.00');
+  });
+
+  it('รายการของทริปอื่นหรือที่ถูกลบแล้ว ตอบ 404 EXPENSE_NOT_FOUND', async () => {
+    db.memberships.push({ id: 201, tripId: OTHER_TRIP, userId: users.owner, role: 'owner' });
+
+    const otherTrip = await patch(users.owner, 1, { amount: '1' }, OTHER_TRIP);
+    expect(otherTrip.status).toBe(404);
+    expect(otherTrip.body.error.code).toBe('EXPENSE_NOT_FOUND');
+
+    await del(users.owner, 1);
+    expect((await patch(users.owner, 1, { amount: '1' })).status).toBe(404);
+  });
+
+  it('viewer แก้ไม่ได้ (403)', async () => {
+    expect((await patch(users.viewer, 1, { amount: '1' })).status).toBe(403);
+  });
+});
+
+describe('DELETE /api/trips/:tripId/expenses/:expenseId', () => {
+  beforeEach(() => {
+    seed([{ amount: '50.00', spentAt: '2026-10-10T05:00:00Z', clientId: valid().clientId }]);
+  });
+
+  it('soft delete ตอบ 204 แถวยังอยู่ ลบซ้ำได้ 404', async () => {
+    const res = await del(users.owner, 1);
+
+    expect(res.status).toBe(204);
+    expect(db.expenses[0].deletedAt).toBeInstanceOf(Date);
+    expect((await get(users.owner)).body.data).toEqual([]);
+    expect((await del(users.owner, 1)).status).toBe(404);
+  });
+
+  it('ส่ง clientId ของรายการที่ลบไปแล้วซ้ำ ไม่สร้างกลับมาใหม่', async () => {
+    await del(users.owner, 1);
+
+    const retry = await post(users.owner, valid());
+
+    expect(retry.status).toBe(404);
+    expect(db.expenses.filter((e) => !e.deletedAt)).toHaveLength(0);
+  });
+
+  it('viewer ลบไม่ได้ (403) คนนอกทริปได้ 404', async () => {
+    expect((await del(users.viewer, 1)).status).toBe(403);
+    expect((await del(users.outsider, 1)).status).toBe(404);
+    expect(db.expenses[0].deletedAt).toBeUndefined();
   });
 });

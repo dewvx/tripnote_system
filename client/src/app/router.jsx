@@ -4,6 +4,7 @@ import GuestOnly from '../features/auth/components/GuestOnly.jsx';
 import RequireAuth from '../features/auth/components/RequireAuth.jsx';
 import AppLayout from '../layouts/AppLayout.jsx';
 import AuthLayout from '../layouts/AuthLayout.jsx';
+import ExpensesPage from '../pages/ExpensesPage.jsx';
 import HomePage from '../pages/HomePage.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
 import NewTripPage from '../pages/NewTripPage.jsx';
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
           { path: '/trips/new', element: <NewTripPage /> },
           { path: '/trips/:tripId', element: <TripPage /> },
           { path: '/trips/:tripId/settings', element: <TripSettingsPage /> },
+          { path: '/trips/:tripId/expenses', element: <ExpensesPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },
