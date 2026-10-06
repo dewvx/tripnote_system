@@ -83,6 +83,36 @@ export function listAmountsForDays(tripId, filters) {
   });
 }
 
+// ยอดรวมทั้งทริป = SELECT SUM(amount), COUNT(*) FROM expenses WHERE trip_id = ? AND deleted_at IS NULL
+export async function sumTrip(tripId) {
+  const result = await prisma.expense.aggregate({
+    where: { tripId, deletedAt: null },
+    _sum: { amount: true },
+    _count: true,
+  });
+  return { total: result._sum.amount ?? new Prisma.Decimal(0), count: result._count };
+}
+
+// ยอดตามหมวด = SELECT category_id, SUM(amount), COUNT(*) ... GROUP BY category_id
+export async function sumByCategory(tripId) {
+  const rows = await prisma.expense.groupBy({
+    by: ['categoryId'],
+    where: { tripId, deletedAt: null },
+    _sum: { amount: true },
+    _count: true,
+  });
+  return rows.map((row) => ({
+    categoryId: row.categoryId,
+    total: row._sum.amount,
+    count: row._count,
+  }));
+}
+
+// `count` = SELECT COUNT(*) FROM trip_members WHERE trip_id = ? (รวม guest)
+export function countMembers(tripId) {
+  return prisma.tripMember.count({ where: { tripId } });
+}
+
 export async function findExpense(tripId, expenseId) {
   const row = await prisma.expense.findFirst({
     where: { id: expenseId, tripId, deletedAt: null },

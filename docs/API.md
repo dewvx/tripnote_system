@@ -378,12 +378,13 @@ POST ด้วย `clientId` ของรายการที่ลบไปแ
         "categoryId": 1,
         "code": "accommodation",
         "name": "ที่พัก",
+        "icon": "bed",
         "total": "1200.00",
         "count": 1,
         "percent": 51.1
       }
     ],
-    "byDay": [{ "date": "2026-10-10", "total": "1850.00" }],
+    "byDay": [{ "date": "2026-10-10", "total": "1850.00", "count": 9 }],
     "byMember": [
       {
         "memberId": 30,
@@ -406,7 +407,13 @@ POST ด้วย `clientId` ของรายการที่ลบไปแ
 ```
 
 ถ้าไม่ได้ตั้งงบ `budgetAmount`, `remaining`, `budgetUsedPercent` เป็น `null`
-`remaining` ติดลบได้เมื่อใช้เกินงบ
+`remaining` ติดลบได้เมื่อใช้เกินงบ งบเป็น `"0.00"` แล้ว `budgetUsedPercent` เป็น `null` (ไม่หารด้วยศูนย์)
+
+- เปอร์เซ็นต์เป็น number ทศนิยมหนึ่งตำแหน่ง ปัดครึ่งขึ้น สัดส่วนตามหมวดรวมกันอาจไม่ถึง 100 พอดี
+- `perPerson` = ยอดรวม ÷ จำนวนสมาชิกทั้งหมด (รวม guest) ปัดเป็นสตางค์ เป็นค่าดูประกอบ ไม่ใช่ยอดเคลียร์
+- `byCategory` มีเฉพาะหมวดที่มีรายจ่าย เรียงยอดมากไปน้อย
+- `byDay` มีเฉพาะวันที่มีรายจ่าย แบ่งวันตาม `trips.timezone` เรียงวันแรกไปวันล่าสุด
+- `byMember` และ `settlements` ยังไม่ส่งจนกว่าจะทำ F3.4
 
 ## 10. Journal — Phase 4
 

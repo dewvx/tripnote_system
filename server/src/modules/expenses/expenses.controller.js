@@ -14,6 +14,11 @@ export async function list(req, res) {
   res.json({ data: expenses, meta });
 }
 
+export async function summary(req, res) {
+  const result = await expensesService.getSummary(req.trip);
+  res.json({ data: result });
+}
+
 export async function update(req, res) {
   const expense = await expensesService.updateExpense(
     req.trip,

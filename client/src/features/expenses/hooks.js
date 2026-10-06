@@ -9,6 +9,7 @@ export const expenseKeys = {
   list: (tripId, params = {}) => [...tripKeys.detail(tripId), 'expenses', params],
   // แยกจาก list เพราะเป็น infinite query โครงข้อมูลใน cache ไม่เหมือนกัน
   history: (tripId, filters = {}) => [...tripKeys.detail(tripId), 'expense-history', filters],
+  summary: (tripId) => [...tripKeys.detail(tripId), 'expense-summary'],
 };
 
 const HISTORY_PAGE_SIZE = 50;
@@ -41,6 +42,14 @@ export function useExpenseHistory(tripId, filters) {
       }),
     initialPageParam: null,
     getNextPageParam: (lastPage) => lastPage.meta.nextCursor,
+  });
+}
+
+// ยอดทุกตัวคิดที่ server client ไม่บวกเลขเงินเอง
+export function useExpenseSummary(tripId) {
+  return useQuery({
+    queryKey: expenseKeys.summary(tripId),
+    queryFn: () => expensesApi.getExpenseSummary(tripId),
   });
 }
 

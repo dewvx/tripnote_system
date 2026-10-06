@@ -10,6 +10,11 @@ export function listActiveCategories() {
   });
 }
 
+// รวมหมวดที่ปิดใช้แล้วด้วย รายจ่ายเก่าที่อยู่ในหมวดนั้นยังต้องแสดงชื่อได้
+export function findCategoriesByIds(ids) {
+  return prisma.expenseCategory.findMany({ where: { id: { in: ids } }, select: publicCategory });
+}
+
 export function findActiveCategory(id) {
   return prisma.expenseCategory.findFirst({
     where: { id, isActive: true },

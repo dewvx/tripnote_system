@@ -9,6 +9,7 @@ const db = vi.hoisted(() => ({
   nextId: 1,
   // จำลองคำขอซ้ำที่มาถึงพร้อมกัน: findByClientId รอบแรกยังไม่เจอ แต่ INSERT ชน unique
   simulateRace: false,
+  budgetAmount: null,
 }));
 
 const categories = vi.hoisted(() => [
@@ -21,7 +22,13 @@ vi.mock('../src/modules/trips/trips.repository.js', () => ({
     const m = db.memberships.find((x) => x.tripId === tripId && x.userId === userId);
     return m
       ? {
-          trip: { id: tripId, status: 'active', timezone: 'Asia/Bangkok' },
+          trip: {
+            id: tripId,
+            status: 'active',
+            timezone: 'Asia/Bangkok',
+            currency: 'THB',
+            budgetAmount: db.budgetAmount,
+          },
           member: { id: m.id, role: m.role },
         }
       : null;
@@ -30,10 +37,13 @@ vi.mock('../src/modules/trips/trips.repository.js', () => ({
 
 vi.mock('../src/modules/expense-categories/expense-categories.repository.js', () => ({
   listActiveCategories: vi.fn(async () => categories),
+  findCategoriesByIds: vi.fn(async (ids) => categories.filter((c) => ids.includes(c.id))),
   findActiveCategory: vi.fn(async (id) => categories.find((c) => c.id === id) ?? null),
 }));
 
-vi.mock('../src/modules/expenses/expenses.repository.js', () => {
+vi.mock('../src/modules/expenses/expenses.repository.js', async () => {
+  const { Prisma } = await import('@prisma/client');
+  const sum = (rows) => rows.reduce((acc, e) => acc.plus(e.amount), new Prisma.Decimal(0));
   const view = (row) => ({
     id: row.id,
     clientId: row.clientId,
@@ -89,6 +99,18 @@ vi.mock('../src/modules/expenses/expenses.repository.js', () => {
       Object.assign(row, data, data.amount && { amount: Number(data.amount).toFixed(2) });
       return view(row);
     }),
+    sumTrip: vi.fn(async (tripId) => {
+      const rows = live(tripId);
+      return { total: sum(rows), count: rows.length };
+    }),
+    sumByCategory: vi.fn(async (tripId) => {
+      const ids = [...new Set(live(tripId).map((e) => e.categoryId))];
+      return ids.map((categoryId) => {
+        const rows = live(tripId, { categoryId });
+        return { categoryId, total: sum(rows), count: rows.length };
+      });
+    }),
+    countMembers: vi.fn(async (tripId) => db.members.filter((m) => m.tripId === tripId).length),
     softDeleteExpense: vi.fn(async (tripId, id) => {
       const row = live(tripId).find((e) => e.id === id);
       if (row) row.deletedAt = new Date();
@@ -132,6 +154,7 @@ beforeEach(() => {
   db.expenses = [];
   db.nextId = 1;
   db.simulateRace = false;
+  db.budgetAmount = null;
 });
 
 describe('GET /api/expense-categories', () => {
@@ -435,5 +458,101 @@ describe('DELETE /api/trips/:tripId/expenses/:expenseId', () => {
     expect((await del(users.viewer, 1)).status).toBe(403);
     expect((await del(users.outsider, 1)).status).toBe(404);
     expect(db.expenses[0].deletedAt).toBeUndefined();
+  });
+});
+
+describe('GET /api/trips/:tripId/expenses/summary', () => {
+  const summary = async (userId = users.viewer) =>
+    request(app).get(`/api/trips/${TRIP}/expenses/summary`).set('Authorization', auth(userId));
+
+  it('ยังไม่มีรายจ่ายและไม่ได้ตั้งงบ ได้ศูนย์และ null ไม่ error', async () => {
+    const res = await summary();
+
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual({
+      currency: 'THB',
+      budgetAmount: null,
+      totalSpent: '0.00',
+      remaining: null,
+      budgetUsedPercent: null,
+      expenseCount: 0,
+      memberCount: 2,
+      perPerson: '0.00',
+      byCategory: [],
+      byDay: [],
+    });
+  });
+
+  it('รวมยอด งบคงเหลือ เปอร์เซ็นต์ ตามหมวดเรียงมากไปน้อย และรายวันเรียงตามลำดับเดินทาง', async () => {
+    db.budgetAmount = '1000.00';
+    seed([
+      { amount: '0.10', categoryId: 2, spentAt: '2026-10-10T05:00:00Z' },
+      { amount: '0.20', categoryId: 2, spentAt: '2026-10-10T06:00:00Z' },
+      { amount: '600.00', categoryId: 1, spentAt: '2026-10-11T05:00:00Z' },
+      { amount: '1.00', deletedAt: new Date(), spentAt: '2026-10-11T05:00:00Z' },
+    ]);
+
+    const { data } = (await summary()).body;
+
+    expect(data).toMatchObject({
+      totalSpent: '600.30',
+      remaining: '399.70',
+      budgetUsedPercent: 60,
+      expenseCount: 3,
+      perPerson: '300.15',
+    });
+    expect(data.byCategory).toEqual([
+      {
+        categoryId: 1,
+        code: 'accommodation',
+        name: 'ที่พัก',
+        icon: 'bed',
+        total: '600.00',
+        count: 1,
+        percent: 100,
+      },
+      {
+        categoryId: 2,
+        code: 'food',
+        name: 'อาหาร',
+        icon: 'utensils',
+        total: '0.30',
+        count: 2,
+        percent: 0,
+      },
+    ]);
+    expect(data.byDay).toEqual([
+      { date: '2026-10-10', total: '0.30', count: 2 },
+      { date: '2026-10-11', total: '600.00', count: 1 },
+    ]);
+  });
+
+  it('เกินงบ remaining ติดลบ เปอร์เซ็นต์เกิน 100 เฉลี่ยต่อคนปัดเป็นสตางค์', async () => {
+    db.budgetAmount = '100.00';
+    db.members.push({ id: 103, tripId: TRIP, displayName: 'เพื่อน 2' });
+    seed([{ amount: '100.01', spentAt: '2026-10-10T05:00:00Z' }]);
+
+    const { data } = (await summary()).body;
+
+    expect(data).toMatchObject({
+      remaining: '-0.01',
+      budgetUsedPercent: 100,
+      memberCount: 3,
+      // 100.01 / 3 = 33.336... ปัดเป็น 33.34
+      perPerson: '33.34',
+    });
+  });
+
+  it('งบเป็น 0 เปอร์เซ็นต์เป็น null ไม่หารด้วยศูนย์', async () => {
+    db.budgetAmount = '0.00';
+    seed([{ amount: '5.00', spentAt: '2026-10-10T05:00:00Z' }]);
+
+    const { data } = (await summary()).body;
+
+    expect(data).toMatchObject({ remaining: '-5.00', budgetUsedPercent: null });
+  });
+
+  it('คนนอกทริปได้ 404', async () => {
+    expect((await summary(users.outsider)).status).toBe(404);
   });
 });

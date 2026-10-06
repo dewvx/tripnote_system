@@ -3,12 +3,13 @@ import { Link, useParams } from 'react-router';
 import BackLink from '../components/ui/BackLink.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
+import BudgetCard from '../features/expenses/components/BudgetCard.jsx';
 import QuickAddExpense from '../features/expenses/components/QuickAddExpense.jsx';
 import RecentExpenses from '../features/expenses/components/RecentExpenses.jsx';
 import TripNotFound from '../features/trips/components/TripNotFound.jsx';
 import TripStatusActions from '../features/trips/components/TripStatusActions.jsx';
 import TripStatusBadge from '../features/trips/components/TripStatusBadge.jsx';
-import { formatDateRange, formatMoney } from '../features/trips/format.js';
+import { formatDateRange } from '../features/trips/format.js';
 import { useTrip } from '../features/trips/hooks.js';
 
 // ภาพรวมทริป Trip Mode และแท็บด้านล่างจะมาใน feature ถัดไป
@@ -22,7 +23,6 @@ export default function TripPage() {
 
   const isOwner = trip.myRole === 'owner';
   const canEdit = isOwner || trip.myRole === 'editor';
-  const overBudget = trip.remaining?.startsWith('-');
 
   return (
     <section className={`space-y-5 pt-2 ${canEdit ? 'pb-20' : ''}`}>
@@ -41,19 +41,7 @@ export default function TripPage() {
         </p>
       </div>
 
-      <dl className="grid grid-cols-2 gap-3">
-        <Stat label="ใช้ไปแล้ว" value={formatMoney(trip.totalSpent, trip.currency)} />
-        {trip.remaining === null ? (
-          <Stat label="งบ" value="ไม่ได้ตั้ง" />
-        ) : (
-          <Stat
-            label={overBudget ? 'เกินงบ' : 'เหลือ'}
-            value={formatMoney(trip.remaining.replace('-', ''), trip.currency)}
-            hint={`จากงบ ${formatMoney(trip.budgetAmount, trip.currency)}`}
-            danger={overBudget}
-          />
-        )}
-      </dl>
+      <BudgetCard trip={trip} />
 
       <RecentExpenses trip={trip} canEdit={canEdit} />
 
@@ -85,19 +73,5 @@ export default function TripPage() {
 
       {canEdit && <QuickAddExpense trip={trip} />}
     </section>
-  );
-}
-
-function Stat({ label, value, hint, danger = false }) {
-  return (
-    <div className="rounded-2xl bg-paper p-4 ring-1 ring-line">
-      <dt className={`text-sm ${danger ? 'font-semibold text-danger' : 'text-slate'}`}>{label}</dt>
-      <dd
-        className={`tabular mt-0.5 text-lg font-semibold break-words ${danger ? 'text-danger' : ''}`}
-      >
-        {value}
-      </dd>
-      {hint && <dd className="tabular text-xs text-slate">{hint}</dd>}
-    </div>
   );
 }

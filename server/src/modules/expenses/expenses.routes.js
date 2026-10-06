@@ -28,6 +28,8 @@ router.post(
   validate({ body: createExpenseSchema }),
   expensesController.create,
 );
+// ต้องอยู่ก่อน /:expenseId ไม่งั้น "summary" จะถูกจับเป็น expenseId ถ้าวันหน้ามี GET /:expenseId
+router.get('/summary', requireTripRole('viewer'), expensesController.summary);
 router.patch(
   '/:expenseId',
   requireTripRole('editor'),

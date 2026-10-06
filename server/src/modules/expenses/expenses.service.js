@@ -100,6 +100,58 @@ export async function listExpenses(trip, { limit, cursor, ...filters }) {
   };
 }
 
+// เปอร์เซ็นต์ทศนิยมหนึ่งตำแหน่งเป็น number ไว้แสดงผล ไม่ใช่เงินจึงไม่ต้องเป็น string
+// ตัวหารเป็นศูนย์คืน null (งบ 0 หรือยังไม่มีรายจ่าย)
+function percentOf(part, whole) {
+  const divisor = new Prisma.Decimal(whole);
+  if (divisor.isZero()) return null;
+  return new Prisma.Decimal(part).div(divisor).times(100).toDecimalPlaces(1).toNumber();
+}
+
+// สรุปงบ (FEATURES.md F3.3) คำนวณตอนอ่านทุกครั้ง ไม่มีตารางเก็บยอดรวม (AGENTS.md §5)
+// byMember และ settlements เป็นของ F3.4
+export async function getSummary(trip) {
+  const [{ total, count }, categoryTotals, amounts, memberCount] = await Promise.all([
+    expensesRepository.sumTrip(trip.id),
+    expensesRepository.sumByCategory(trip.id),
+    expensesRepository.listAmountsForDays(trip.id, {}),
+    expensesRepository.countMembers(trip.id),
+  ]);
+  const categories = await categoriesRepository.findCategoriesByIds(
+    categoryTotals.map((c) => c.categoryId),
+  );
+  const categoryById = new Map(categories.map((c) => [c.id, c]));
+  const budget = trip.budgetAmount;
+
+  return {
+    currency: trip.currency,
+    budgetAmount: budget,
+    totalSpent: formatMoney(total),
+    remaining: budget === null ? null : formatMoney(new Prisma.Decimal(budget).minus(total)),
+    budgetUsedPercent: budget === null ? null : percentOf(total, budget),
+    expenseCount: count,
+    memberCount,
+    // หารแล้วปัดเป็นสตางค์ (ROUND_HALF_UP) เป็นค่าประมาณไว้ดู การหารให้ลงตัวทุกสตางค์เป็นงานของ settlement
+    perPerson: memberCount === 0 ? null : formatMoney(total.div(memberCount)),
+    byCategory: categoryTotals
+      .map(({ categoryId, total: categoryTotal, count: categoryCount }) => {
+        const category = categoryById.get(categoryId);
+        return {
+          categoryId,
+          code: category?.code ?? null,
+          name: category?.nameTh ?? null,
+          icon: category?.icon ?? null,
+          total: formatMoney(categoryTotal),
+          count: categoryCount,
+          percent: percentOf(categoryTotal, total),
+        };
+      })
+      .sort((a, b) => new Prisma.Decimal(b.total).comparedTo(a.total)),
+    // เรียงจากวันแรกไปวันล่าสุด อ่านเป็นลำดับการเดินทาง
+    byDay: sumByDay(amounts, trip.timezone).reverse(),
+  };
+}
+
 export async function updateExpense(trip, expenseId, input) {
   await assertReferences(trip.id, input);
 
