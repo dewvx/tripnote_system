@@ -13,7 +13,7 @@
 | 5    | กำหนด API                  | ✅ อนุมัติ 5 ต.ค.                            |
 | 6    | กำหนด Roadmap              | ✅ อนุมัติ 5 ต.ค. (เลือกแผน v0.1 Trip-Ready) |
 | 7    | สร้าง Project Foundation   | ✅ เสร็จ deploy production ผ่านแล้ว          |
-| 8    | Implement ทีละ feature     | 🟡 F3.4 Who Paid & Settlement                |
+| 8    | Implement ทีละ feature     | 🟡 Journal แบบย่อ + Timeline (v0.1)          |
 
 ## 2. ประเด็นที่ต้องตัดสินใจก่อน: ทริปจริงอยู่ห่างแค่ 5 วัน
 

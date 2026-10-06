@@ -108,9 +108,25 @@ export async function sumByCategory(tripId) {
   }));
 }
 
-// `count` = SELECT COUNT(*) FROM trip_members WHERE trip_id = ? (รวม guest)
-export function countMembers(tripId) {
-  return prisma.tripMember.count({ where: { tripId } });
+// แต่ละคนในทริปจ่ายไปเท่าไหร่ รวมคนที่ยังไม่ได้จ่ายเลย (DATABASE.md §6 "ยอดเคลียร์แบบหารเท่า")
+// `$queryRaw` = ส่ง SQL ตรงไปที่ MySQL ใช้แบบ tagged template เท่านั้น ค่าใน ${} ถูกส่งเป็น parameter
+// ไม่ได้ต่อ string จึงไม่โดน SQL injection (AGENTS.md §7)
+// เรียงตาม id คนแรกคือคนที่รับเศษสตางค์ตอนหาร
+// MySQL คืน id เป็น BigInt และ SUM เป็น Prisma.Decimal
+export async function sumPaidByMember(tripId) {
+  const rows = await prisma.$queryRaw`
+    SELECT m.id, m.display_name, COALESCE(SUM(e.amount), 0) AS paid
+    FROM trip_members m
+    LEFT JOIN expenses e
+           ON e.paid_by_member_id = m.id AND e.trip_id = m.trip_id AND e.deleted_at IS NULL
+    WHERE m.trip_id = ${tripId}
+    GROUP BY m.id
+    ORDER BY m.id`;
+  return rows.map((row) => ({
+    memberId: Number(row.id),
+    displayName: row.display_name,
+    paid: new Prisma.Decimal(row.paid),
+  }));
 }
 
 export async function findExpense(tripId, expenseId) {

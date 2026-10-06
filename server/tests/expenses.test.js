@@ -110,7 +110,16 @@ vi.mock('../src/modules/expenses/expenses.repository.js', async () => {
         return { categoryId, total: sum(rows), count: rows.length };
       });
     }),
-    countMembers: vi.fn(async (tripId) => db.members.filter((m) => m.tripId === tripId).length),
+    sumPaidByMember: vi.fn(async (tripId) =>
+      db.members
+        .filter((m) => m.tripId === tripId)
+        .sort((a, b) => a.id - b.id)
+        .map((m) => ({
+          memberId: m.id,
+          displayName: m.displayName,
+          paid: sum(live(tripId, { paidByMemberId: m.id })),
+        })),
+    ),
     softDeleteExpense: vi.fn(async (tripId, id) => {
       const row = live(tripId).find((e) => e.id === id);
       if (row) row.deletedAt = new Date();
@@ -480,6 +489,11 @@ describe('GET /api/trips/:tripId/expenses/summary', () => {
       perPerson: '0.00',
       byCategory: [],
       byDay: [],
+      byMember: [
+        { memberId: 100, displayName: 'Owner', paid: '0.00', share: '0.00', balance: '0.00' },
+        { memberId: 102, displayName: 'เพื่อน 1', paid: '0.00', share: '0.00', balance: '0.00' },
+      ],
+      settlements: [],
     });
   });
 
@@ -550,6 +564,33 @@ describe('GET /api/trips/:tripId/expenses/summary', () => {
     const { data } = (await summary()).body;
 
     expect(data).toMatchObject({ remaining: '-5.00', budgetUsedPercent: null });
+  });
+
+  it('ใครจ่ายเท่าไหร่และยอดเคลียร์ ไม่นับรายการที่ลบ เศษสตางค์ลงคนแรก', async () => {
+    db.members.push({ id: 103, tripId: TRIP, displayName: 'เพื่อน 2' });
+    seed([
+      { amount: '100.00', paidByMemberId: 102, spentAt: '2026-10-10T05:00:00Z' },
+      { amount: '0.01', paidByMemberId: 100, spentAt: '2026-10-10T06:00:00Z' },
+      {
+        amount: '999.00',
+        paidByMemberId: 103,
+        spentAt: '2026-10-10T07:00:00Z',
+        deletedAt: new Date(),
+      },
+    ]);
+
+    const { data } = (await summary()).body;
+
+    // 100.01 / 3 = 33.33 เศษ 2 สตางค์ → Owner (id น้อยสุด) รับ 33.35
+    expect(data.byMember).toEqual([
+      { memberId: 100, displayName: 'Owner', paid: '0.01', share: '33.35', balance: '-33.34' },
+      { memberId: 102, displayName: 'เพื่อน 1', paid: '100.00', share: '33.33', balance: '66.67' },
+      { memberId: 103, displayName: 'เพื่อน 2', paid: '0.00', share: '33.33', balance: '-33.33' },
+    ]);
+    expect(data.settlements).toEqual([
+      { fromMemberId: 100, toMemberId: 102, amount: '33.34' },
+      { fromMemberId: 103, toMemberId: 102, amount: '33.33' },
+    ]);
   });
 
   it('คนนอกทริปได้ 404', async () => {

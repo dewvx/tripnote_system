@@ -19,7 +19,7 @@ export default function BudgetCard({ trip }) {
           <BudgetBar summary={summary} />
           <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-2">
             <p className="tabular text-sm text-slate">
-              เฉลี่ยคนละ {formatMoney(summary.perPerson, summary.currency)}
+              เฉลี่ยคนละประมาณ {formatMoney(summary.perPerson, summary.currency)}
             </p>
             {summary.expenseCount > 0 && (
               <Link

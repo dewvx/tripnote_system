@@ -398,13 +398,15 @@ SELECT m.id, m.display_name,
        COALESCE(SUM(e.amount), 0) AS paid
 FROM trip_members m
 LEFT JOIN expenses e
-       ON e.paid_by_member_id = m.id AND e.deleted_at IS NULL
+       ON e.paid_by_member_id = m.id AND e.trip_id = m.trip_id AND e.deleted_at IS NULL
 WHERE m.trip_id = ?
-GROUP BY m.id;
+GROUP BY m.id
+ORDER BY m.id;
 ```
 
 จากนั้น service คำนวณ `share = total / จำนวนสมาชิก` และ `balance = paid − share`
-ค่าบวกคือควรได้คืน ค่าลบคือต้องจ่ายเพิ่ม เศษสตางค์จากการหารให้ลงที่สมาชิกคนแรกเพื่อให้ผลรวมเป็นศูนย์
+ค่าบวกคือควรได้คืน ค่าลบคือต้องจ่ายเพิ่ม เศษสตางค์จากการหารให้ลงที่สมาชิกคนแรก (id น้อยสุด) เพื่อให้ผลรวมเป็นศูนย์
+โค้ดอยู่ที่ `expenses.repository.js` (`sumPaidByMember`) และ `expenses.settlement.js`
 
 ## 7. ส่วนขยายในอนาคต
 

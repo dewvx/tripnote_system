@@ -4,6 +4,7 @@ import BackLink from '../components/ui/BackLink.jsx';
 import ErrorState from '../components/ui/ErrorState.jsx';
 import Spinner from '../components/ui/Spinner.jsx';
 import BudgetBar from '../features/expenses/components/BudgetBar.jsx';
+import SettlementSection from '../features/expenses/components/SettlementSection.jsx';
 import {
   CategoryBreakdown,
   DailyTotals,
@@ -22,7 +23,7 @@ function Card({ title, children }) {
   );
 }
 
-// สรุปค่าใช้จ่าย (FEATURES.md F3.3): แถบงบ เฉลี่ยต่อคน สัดส่วนตามหมวด ยอดรายวัน
+// สรุปค่าใช้จ่าย (FEATURES.md F3.3, F3.4): แถบงบ เฉลี่ยต่อคน ยอดเคลียร์ สัดส่วนตามหมวด ยอดรายวัน
 export default function ExpenseSummaryPage() {
   const { tripId } = useParams();
   const trip = useTrip(tripId);
@@ -56,7 +57,7 @@ export default function ExpenseSummaryPage() {
       <Card>
         <dl className="grid grid-cols-2 gap-3">
           <div>
-            <dt className="text-sm text-slate">เฉลี่ยต่อคน ({data.memberCount} คน)</dt>
+            <dt className="text-sm text-slate">เฉลี่ยต่อคน (ประมาณ) · {data.memberCount} คน</dt>
             <dd className="tabular text-lg font-semibold">
               {formatMoney(data.perPerson, data.currency)}
             </dd>
@@ -80,6 +81,8 @@ export default function ExpenseSummaryPage() {
         </Card>
       ) : (
         <>
+          {/* ทริปคนเดียวไม่มีอะไรต้องเคลียร์ */}
+          {data.memberCount > 1 && <SettlementSection summary={data} members={trip.data.members} />}
           <Card title="ตามหมวด">
             <CategoryBreakdown summary={data} />
           </Card>

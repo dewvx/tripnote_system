@@ -4,6 +4,7 @@ import { AppError } from '../../lib/AppError.js';
 import { formatMoney } from '../../utils/money.js';
 import * as categoriesRepository from '../expense-categories/expense-categories.repository.js';
 import * as expensesRepository from './expenses.repository.js';
+import { settle, splitEqually } from './expenses.settlement.js';
 
 function invalidField(field, message) {
   return new AppError('VALIDATION_ERROR', 422, 'ข้อมูลไม่ถูกต้อง', [{ field, message }]);
@@ -108,15 +109,16 @@ function percentOf(part, whole) {
   return new Prisma.Decimal(part).div(divisor).times(100).toDecimalPlaces(1).toNumber();
 }
 
-// สรุปงบ (FEATURES.md F3.3) คำนวณตอนอ่านทุกครั้ง ไม่มีตารางเก็บยอดรวม (AGENTS.md §5)
-// byMember และ settlements เป็นของ F3.4
+// สรุปงบ (F3.3) และยอดเคลียร์ (F3.4) คำนวณตอนอ่านทุกครั้ง ไม่มีตารางเก็บยอดรวม (AGENTS.md §5)
 export async function getSummary(trip) {
-  const [{ total, count }, categoryTotals, amounts, memberCount] = await Promise.all([
+  const [{ total, count }, categoryTotals, amounts, paidByMember] = await Promise.all([
     expensesRepository.sumTrip(trip.id),
     expensesRepository.sumByCategory(trip.id),
     expensesRepository.listAmountsForDays(trip.id, {}),
-    expensesRepository.countMembers(trip.id),
+    expensesRepository.sumPaidByMember(trip.id),
   ]);
+  const memberCount = paidByMember.length;
+  const byMember = splitEqually(paidByMember, total);
   const categories = await categoriesRepository.findCategoriesByIds(
     categoryTotals.map((c) => c.categoryId),
   );
@@ -149,6 +151,8 @@ export async function getSummary(trip) {
       .sort((a, b) => new Prisma.Decimal(b.total).comparedTo(a.total)),
     // เรียงจากวันแรกไปวันล่าสุด อ่านเป็นลำดับการเดินทาง
     byDay: sumByDay(amounts, trip.timezone).reverse(),
+    byMember,
+    settlements: settle(byMember),
   };
 }
 
