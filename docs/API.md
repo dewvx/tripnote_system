@@ -180,6 +180,7 @@ refresh + logout รวมกัน 60 ครั้ง / 15 นาที เก�
     "currency": "THB",
     "budgetAmount": "7000.00",
     "totalSpent": "0.00",
+    "remaining": "7000.00",
     "myRole": "owner",
     "members": [
       { "id": 30, "displayName": "Dxvv", "role": "owner", "isMe": true, "isGuest": false },
@@ -312,6 +313,7 @@ Query ของรายการ: `?categoryId=&paidByMemberId=&date=YYYY-MM-DD
 ```
 
 บังคับแค่ `amount`, `categoryId`, `paidByMemberId` ถ้าไม่ส่ง `spentAt` ใช้เวลาปัจจุบัน
+`placeId` ยังไม่รับใน v0.1 (Places อยู่ Phase 2) ถ้าส่งมาจะถูกเมิน
 ใบเสร็จอัปโหลดแยกผ่าน endpoint ของ photos หลังได้ `id` ของรายจ่าย เพื่อให้การบันทึกตัวเลขไม่ต้องรอรูป
 
 **GET `/trips/:tripId/expenses/summary`**

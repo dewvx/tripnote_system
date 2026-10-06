@@ -140,6 +140,7 @@ describe('POST /api/trips', () => {
       dayCount: 3,
       budgetAmount: '7000.00',
       totalSpent: '0.00',
+      remaining: '7000.00',
       myRole: 'owner',
     });
     expect(trip.members).toEqual([
@@ -238,6 +239,21 @@ describe('สิทธิ์เข้าถึงทริป', () => {
     expect((await api(editor).get(`/trips/${trip.id}`)).status).toBe(200);
     expect((await api(editor).patch(`/trips/${trip.id}`, { name: 'x' })).status).toBe(403);
     expect((await api(editor).delete(`/trips/${trip.id}`)).status).toBe(403);
+  });
+});
+
+describe('GET /api/trips/:tripId', () => {
+  it('งบคงเหลือคิดด้วย Decimal ติดลบได้เมื่อใช้เกินงบ ไม่ตั้งงบเป็น null', async () => {
+    const trip = await createTrip(owner, { ...validTrip, budgetAmount: '100.10' });
+    const noBudget = await createTrip(owner, { ...validTrip, budgetAmount: '' });
+
+    db.spent.set(trip.id, '70.20');
+    expect((await api(owner).get(`/trips/${trip.id}`)).body.data.remaining).toBe('29.90');
+
+    db.spent.set(trip.id, '100.30');
+    expect((await api(owner).get(`/trips/${trip.id}`)).body.data.remaining).toBe('-0.20');
+
+    expect((await api(owner).get(`/trips/${noBudget.id}`)).body.data.remaining).toBeNull();
   });
 });
 

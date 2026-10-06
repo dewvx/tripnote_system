@@ -1,5 +1,6 @@
 import { AppError } from '../../lib/AppError.js';
 import { dayCount, parseDateOnly } from '../../utils/datetime.js';
+import { subtractMoney } from '../../utils/money.js';
 import * as usersRepository from '../users/users.repository.js';
 import * as tripsRepository from './trips.repository.js';
 
@@ -48,6 +49,8 @@ export async function getTrip(tripId, currentUserId) {
     ...withDayCount(trip),
     myRole: members.find((m) => m.isMe)?.role ?? null,
     totalSpent,
+    // ไม่ได้ตั้งงบ = null, ใช้เกินงบ = ติดลบ (เหมือน summary ใน API.md §9)
+    remaining: trip.budgetAmount === null ? null : subtractMoney(trip.budgetAmount, totalSpent),
     members,
   };
 }
