@@ -6,6 +6,8 @@ import Spinner from '../components/ui/Spinner.jsx';
 import BudgetCard from '../features/expenses/components/BudgetCard.jsx';
 import QuickAddExpense from '../features/expenses/components/QuickAddExpense.jsx';
 import RecentExpenses from '../features/expenses/components/RecentExpenses.jsx';
+import LatestNoteCard from '../features/journal/components/LatestNoteCard.jsx';
+import QuickAddNote from '../features/journal/components/QuickAddNote.jsx';
 import TripNotFound from '../features/trips/components/TripNotFound.jsx';
 import TripStatusActions from '../features/trips/components/TripStatusActions.jsx';
 import TripStatusBadge from '../features/trips/components/TripStatusBadge.jsx';
@@ -25,7 +27,7 @@ export default function TripPage() {
   const canEdit = isOwner || trip.myRole === 'editor';
 
   return (
-    <section className={`space-y-5 pt-2 ${canEdit ? 'pb-20' : ''}`}>
+    <section className={`space-y-5 pt-2 ${canEdit ? 'pb-36' : ''}`}>
       <div>
         <BackLink to="/">ทริปของฉัน</BackLink>
         <div className="mt-1 flex items-start justify-between gap-3">
@@ -42,6 +44,8 @@ export default function TripPage() {
       </div>
 
       <BudgetCard trip={trip} />
+
+      <LatestNoteCard trip={trip} />
 
       <RecentExpenses trip={trip} canEdit={canEdit} />
 
@@ -71,7 +75,12 @@ export default function TripPage() {
         </Link>
       )}
 
-      {canEdit && <QuickAddExpense trip={trip} />}
+      {canEdit && (
+        <>
+          <QuickAddNote trip={trip} />
+          <QuickAddExpense trip={trip} />
+        </>
+      )}
     </section>
   );
 }

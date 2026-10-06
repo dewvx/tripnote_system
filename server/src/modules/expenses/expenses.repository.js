@@ -73,6 +73,16 @@ export async function listExpenses(tripId, { cursor, limit, ...filters }) {
   return rows.map(toExpense);
 }
 
+// รายจ่ายทั้งหมดของทริปสำหรับ timeline พร้อม journalEntryId ไว้แยกว่าผูกกับบันทึกไหน
+export async function listForTimeline(tripId) {
+  const rows = await prisma.expense.findMany({
+    where: { tripId, deletedAt: null },
+    include: expenseInclude,
+    orderBy: [{ spentAt: 'asc' }, { id: 'asc' }],
+  });
+  return rows.map((row) => ({ ...toExpense(row), journalEntryId: row.journalEntryId }));
+}
+
 // เวลากับจำนวนเงินของทุกรายการที่ตรงตัวกรอง ไว้รวมยอดรายวันใน service
 // ไม่ GROUP BY DATE() ใน SQL เพราะต้องแปลงเป็นวันตาม timezone ของทริป
 // และ CONVERT_TZ ด้วยชื่อโซนต้องโหลดตาราง timezone ใน MySQL ซึ่ง managed MySQL มักไม่มี

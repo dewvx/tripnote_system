@@ -7,6 +7,7 @@ import AuthLayout from '../layouts/AuthLayout.jsx';
 import ExpenseSummaryPage from '../pages/ExpenseSummaryPage.jsx';
 import ExpensesPage from '../pages/ExpensesPage.jsx';
 import HomePage from '../pages/HomePage.jsx';
+import JournalPage from '../pages/JournalPage.jsx';
 import LoginPage from '../pages/LoginPage.jsx';
 import NewTripPage from '../pages/NewTripPage.jsx';
 import NotFoundPage from '../pages/NotFoundPage.jsx';
@@ -39,6 +40,7 @@ export const router = createBrowserRouter([
           { path: '/trips/:tripId/settings', element: <TripSettingsPage /> },
           { path: '/trips/:tripId/expenses', element: <ExpensesPage /> },
           { path: '/trips/:tripId/summary', element: <ExpenseSummaryPage /> },
+          { path: '/trips/:tripId/journal', element: <JournalPage /> },
           { path: '*', element: <NotFoundPage /> },
         ],
       },

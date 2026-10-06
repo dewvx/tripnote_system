@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 
 import { AppError } from '../../lib/AppError.js';
+import { dayKeyFormatter } from '../../utils/datetime.js';
 import { formatMoney } from '../../utils/money.js';
 import * as categoriesRepository from '../expense-categories/expense-categories.repository.js';
 import * as expensesRepository from './expenses.repository.js';
@@ -53,17 +54,6 @@ export async function createExpense(trip, userId, input) {
   // หาไม่เจอแปลว่ารายการเดิมถูกลบไปแล้ว (unique ยังนับแถวที่ soft delete) ไม่สร้างกลับมาใหม่
   if (!existing) throw notFound();
   return { expense: existing, created: false };
-}
-
-// "YYYY-MM-DD" ของเวลานั้นตาม timezone ของทริป (en-CA จัดรูปวันที่เป็น ISO พอดี)
-function dayKeyFormatter(timezone) {
-  const format = new Intl.DateTimeFormat('en-CA', {
-    timeZone: timezone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  });
-  return (date) => format.format(date);
 }
 
 // ยอดรวมรายวันของทุกรายการที่ตรงตัวกรอง ไม่ใช่แค่หน้าที่โหลดมา ใหม่ไปเก่า

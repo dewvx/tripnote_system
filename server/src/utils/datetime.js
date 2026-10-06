@@ -14,3 +14,21 @@ export function formatDateOnly(date) {
 export function dayCount(startDate, endDate) {
   return Math.round((endDate - startDate) / 86_400_000) + 1;
 }
+
+// ฟังก์ชันแปลงเวลา (Date) เป็น "YYYY-MM-DD" ตาม timezone ของทริป ใช้จัดกลุ่มรายวัน (AGENTS.md §6)
+// en-CA จัดรูปวันที่เป็น ISO พอดี
+export function dayKeyFormatter(timezone) {
+  const format = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  return (date) => format.format(date);
+}
+
+// วันที่เท่าไหร่ของทริป ("YYYY-MM-DD" ทั้งหมด) นับวันเริ่มเป็นวันที่ 1 อยู่นอกช่วงทริปคืน null
+export function tripDayNumber(date, startDate, endDate) {
+  if (date < startDate || date > endDate) return null;
+  return dayCount(parseDateOnly(startDate), parseDateOnly(date));
+}
