@@ -38,7 +38,10 @@
 - Journal แบบย่อ + Timeline (F4.2, F4.4 ส่วน v0.1): ✅ เสร็จ (6 ต.ค.) ทดสอบบนมือถือจริงแล้ว
   ข้อความ + ชื่อสถานที่พิมพ์เอง (`location_label`) + เวลา ไม่มีรูป ต้องมีข้อความหรือสถานที่อย่างน้อยหนึ่งอย่าง
   timeline เรียงเก่าไปใหม่ อ่านผ่าน `GET /timeline` เท่านั้น
-- **v0.1 Trip-Ready scope ครบแล้ว** งานถัดไป: deploy production (migration + env) และสร้างทริปจริง
+- **v0.1 Trip-Ready deploy production แล้ว (6 ต.ค.)** ทดสอบบนมือถือจริงผ่าน
+  prod (`defaultdb`) มี migration ครบ 2 ตัว และหมวดรายจ่าย 8 หมวด
+- งานถัดไป: สร้างทริปจริง, เปิด backup ฐานข้อมูล, ตรวจ `DATABASE_URL` บน Vercel ให้ใช้ `sslaccept=strict&sslcert=ca.pem`
+  ระหว่างทริป 10–12 ต.ค. ห้าม deploy โค้ดใหม่ (ROADMAP §3)
   ห้าม push หรือรัน `migrate deploy` กับ production จนกว่าเจ้าของจะสั่ง
 - เจ้าของโปรเจกต์ยังใหม่กับ Prisma เมื่อใช้ความสามารถของ Prisma ที่ยังไม่เคยปรากฏในโค้ด ให้อธิบายสั้น ๆ ว่ามันเทียบกับ SQL อย่างไร
 
